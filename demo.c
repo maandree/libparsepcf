@@ -489,7 +489,7 @@ print_glyph(size_t glyph)
 
 	for (y = 0; y < height; y++, bitmap += row_size) {
 		/* Draw baseline */
-		if (y + 1 == mtx.character_ascent)
+		if ((int64_t)y + 1 == (int64_t)mtx.character_ascent)
 			printf("\033[4m");
 
 		/* If glyph is offset for caret, print offset in black */
@@ -508,7 +508,7 @@ print_glyph(size_t glyph)
 			    x < (size_t)-mtx.left_side_bearing) {
 				pixel = "<>";
 			} else if (mtx.right_side_bearing > mtx.character_width &&
-			           x >= mtx.character_width + mtx.left_side_bearing) {
+			           x >= (size_t)(mtx.character_width + mtx.left_side_bearing)) {
 				pixel = "<>";
 			} else if (mtx.character_ascent > font_ascent &&
 			           y < (size_t)(mtx.character_ascent - font_ascent)) {
@@ -542,8 +542,210 @@ print_glyph(size_t glyph)
 
 
 static void
-print_line(const char *str, size_t strlen) /* TODO */
+draw_glyph(size_t glyph, int32_t *xp, char ***linesp, int32_t *leftp, int32_t *rightp, int32_t *ascentp, int32_t *descentp)
 {
+	struct libparsepcf_metrics mtx;
+	const uint8_t *bitmap;
+	int32_t left, right;
+	size_t height, width, old_height, old_width, y, x, ypos, xpos;
+	size_t padding, packing, row_size, bit, byte, bitmap_offset, bitmap_size;
+
+	if (libparsepcf_get_metrics(file, len, font.mtx_table, &mtx, glyph, 1)) {
+		perror("libparsepcf_get_metrics");
+		exit(1);
+	}
+
+	xpos = (size_t)*xp;
+	left = *xp + mtx.left_side_bearing;
+	right = *xp + mtx.right_side_bearing;
+	*xp += mtx.character_width;
+	height = (size_t)(*ascentp + *descentp);
+	width = (size_t)(*leftp + *rightp);
+
+	if (-left > *leftp) {
+		*leftp = -left;
+		old_width = width;
+		width = (size_t)(*leftp + *rightp);
+		for (y = 0; y < height; y++) {
+			(*linesp)[y] = realloc((*linesp)[y], width);
+			if (!(*linesp)[y]) {
+				perror("realloc");
+				exit(1);
+			}
+			memmove(&(*linesp)[y][width - old_width], (*linesp)[y], old_width);
+			memset((*linesp)[y], 0, width - old_width);
+		}
+	}
+	xpos += (size_t)*leftp;
+
+	if (right > *rightp) {
+		*rightp = right;
+		old_width = width;
+		width = (size_t)(*leftp + *rightp);
+		for (y = 0; y < height; y++) {
+			(*linesp)[y] = realloc((*linesp)[y], width);
+			if (!(*linesp)[y]) {
+				perror("realloc");
+				exit(1);
+			}
+			memset(&(*linesp)[y][old_width], 0, width - old_width);
+		}
+	}
+
+	if (mtx.character_ascent > *ascentp) {
+		*ascentp = mtx.character_ascent;
+		old_height = height;
+		height = (size_t)(*ascentp + *descentp);
+		*linesp = realloc(*linesp, height * sizeof(**linesp));
+		memmove(&(*linesp)[height - old_height], *linesp, old_height * sizeof(**linesp));
+		for (y = 0; y < height - old_height; y++) {
+			(*linesp)[y] = NULL;
+			if (width) {
+				(*linesp)[y] = calloc(width, 1);
+				if (!(*linesp)[y]) {
+					perror("calloc");
+					exit(1);
+				}
+			}
+		}
+	}
+
+	if (mtx.character_descent > *descentp) {
+		*descentp = mtx.character_descent;
+		old_height = height;
+		height = (size_t)(*ascentp + *descentp);
+		*linesp = realloc(*linesp, height * sizeof(**linesp));
+		for (y = old_height; y < height; y++) {
+			(*linesp)[y] = NULL;
+			if (width) {
+				(*linesp)[y] = calloc(width, 1);
+				if (!(*linesp)[y]) {
+					perror("calloc");
+					exit(1);
+				}
+			}
+		}
+	}
+
+	padding = font.bitmaps.row_padding - 1;
+	packing = font.bitmaps.bit_packing - 1;
+	width = (size_t)((int32_t)mtx.right_side_bearing - (int32_t)mtx.left_side_bearing);
+	height = (size_t)((int32_t)mtx.character_ascent + (int32_t)mtx.character_descent);
+	row_size = width / 8 + !!(width & 7);
+	row_size = row_size + ((font.bitmaps.row_padding - (row_size & padding)) & padding);
+
+	if (libparsepcf_get_bitmap_offsets(file, len, font.bitmap_table, &font.bitmaps, &bitmap_offset, glyph, 1)) {
+		perror("libparsepcf_get_bitmap_offsets");
+		exit(1);
+	}
+	bitmap_size = font.bitmaps.bitmap_size - bitmap_offset;
+	bitmap = &font.bitmaps.bitmap_data[bitmap_offset];
+	if (height && row_size > bitmap_size / height) {
+		perror("bitmap is smaller than expected");
+		exit(1);
+	}
+
+	ypos = (size_t)(*ascentp - mtx.character_ascent);
+	for (y = 0; y < height; y++, bitmap += row_size) {
+		for (x = 0; x < width; x++) {
+			bit = font.bitmaps.lsbit ? 7 - x % 8 : x % 8;
+			byte = x / 8;
+			if (!font.bitmaps.lsbyte)
+				byte = ((byte & ~packing) | (packing - (byte & packing)));
+			if ((bitmap[byte] >> bit) & 1)
+				(*linesp)[y + ypos][x + xpos] |= 1;
+		}
+	}
+}
+
+
+static void
+print_line(const char *str)
+{
+	const uint8_t *s = (const void *)str;
+	int32_t xpos = 0, left = 0, right = 0, ascent = 0, descent = 0;
+	char **lines = NULL;
+	uint32_t codepoint = 0, hi, lo;
+	size_t glyph, n = 0, y, x, width, height;
+
+	while (*s) {
+		/* Very sloppy UTF-8 decoding */
+		if (n) {
+			if ((*s & 0xC0) != 0x80) {
+				n = 0;
+				glyph = (size_t)font.encoding.default_char;
+				goto have_glyph;
+			} else {
+				n -= 1;
+				codepoint <<= 6;
+				codepoint |= *s++ & 0x3F;
+			}
+		} else if ((*s & 0xC0) == 0x80) {
+			glyph = (size_t)font.encoding.default_char;
+			s++;
+			goto have_glyph;
+		} else if (*s & 0x80) {
+			codepoint = (uint32_t)*s++;
+			n = 0;
+			while (codepoint & 0x80) {
+				codepoint <<= 1;
+				n += 1;
+			}
+			codepoint &= 0xFF;
+			codepoint >>= n--;
+			continue;
+		} else {
+			codepoint = (uint32_t)*s++;
+		}
+
+		/* Map codepoint to glyph index */
+		if (font.encoding.min_byte1 || font.encoding.max_byte1) {
+			if (codepoint > UINT32_C(0xFFFF) ||
+			    codepoint < (uint32_t)font.encoding.min_byte2 ||
+			    codepoint > (uint32_t)font.encoding.max_byte2) {
+				glyph = (size_t)font.encoding.default_char;
+				goto have_glyph;
+			}
+			glyph = codepoint - (uint32_t)font.encoding.min_byte2;
+		} else {
+			hi = (codepoint >> 8) & UINT32_C(0xFF);
+			lo = (codepoint >> 0) & UINT32_C(0xFF);
+			if (codepoint > UINT32_C(0xFF) ||
+			    hi < (uint32_t)font.encoding.min_byte1 ||
+			    hi > (uint32_t)font.encoding.max_byte1 ||
+			    lo < (uint32_t)font.encoding.min_byte2 ||
+			    lo > (uint32_t)font.encoding.max_byte2) {
+				glyph = (size_t)font.encoding.default_char;
+				goto have_glyph;
+			}
+			hi -= (size_t)font.encoding.min_byte1;
+			lo -= (size_t)font.encoding.min_byte2;
+			glyph = hi * (size_t)(font.encoding.max_byte2 - font.encoding.min_byte2 + 1) + lo;
+		}
+		/* TODO we are assuming ASCII/UCS-2 */
+		if (libparsepcf_get_glyph_indices(file, len, font.enc_table, &font.encoding, &glyph, glyph, 1)) {
+			perror("libparsepcf_get_glyph_indices");
+			exit(1);
+		}
+
+	have_glyph:
+		if (glyph == LIBPARSEPCF_NOT_ENCODED)
+			glyph = (size_t)font.encoding.default_char;
+
+		draw_glyph(glyph, &xpos, &lines, &left, &right, &ascent, &descent);
+	}
+
+	width = (size_t)(left + right);
+	height = (size_t)(ascent + descent);
+	for (y = 0; y < height; y++) {
+		if ((int64_t)y + 1 == (int64_t)ascent)
+			printf("\033[4m");
+		for (x = 0; x < width; x++)
+			printf("\033[%sm[]", lines[y][x] ? "1;37" : "1;30");
+		printf("\033[0m\n");
+		free(lines[y]);
+	}
+	free(lines);
 }
 
 
@@ -570,8 +772,10 @@ main(int argc, char *argv[])
 			glyph = (size_t)strtoul(argv[1], NULL, 16);
 			print_glyph(glyph);
 		} else {
-			for (; argc--; argv++)
-				print_line(*argv, strlen(*argv));
+			for (; argc--; argv++) {
+				print_line(*argv);
+				printf("\n");
+			}
 		}
 		libparsepcf_destroy_preparsed_font(&font);
 	}

@@ -87,7 +87,7 @@ libparsepcf_preparse_font(const char *file, size_t size, struct libparsepcf_font
 			max = font->swidths;
 	}
 
-	if (min != max || !font->mtx_table)
+	if (min != max || !font->mtx_table || !font->enc_table)
 		goto ebfont;
 	if (!font->inkmtx_table && font->accel_table && font->accels.ink_metrics)
 		goto ebfont;

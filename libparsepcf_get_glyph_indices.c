@@ -9,7 +9,7 @@ libparsepcf_get_glyph_indices(const char *file, size_t size,
                               size_t *out, size_t first, size_t count)
 {
 	int msb = table->format & LIBPARSEPCF_BYTE;
-	size_t pos = 14 + first * 2;
+	size_t pos = table->offset + 14 + first * 2;
 	size_t i;
 
 	(void) size;
