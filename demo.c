@@ -471,9 +471,6 @@ print_glyph(size_t glyph)
 	}
 	printf("\n");
 
-	font_ascent = 15;
-	font_descent = 5;
-
 	extra_left = mtx.left_side_bearing > 0 ? (size_t)mtx.left_side_bearing : 0;
 	extra_right = mtx.character_width > mtx.right_side_bearing ? (size_t)(mtx.character_width - mtx.right_side_bearing) : 0;
 	print_width = extra_left + width + extra_right;
@@ -722,7 +719,7 @@ print_line(const char *str)
 			lo -= (size_t)font.encoding.min_byte2;
 			glyph = hi * (size_t)(font.encoding.max_byte2 - font.encoding.min_byte2 + 1) + lo;
 		}
-		/* TODO we are assuming ASCII/UCS-2 */
+		/* For the purpose of the demo we are assuming ASCII/UCS-2 */
 		if (libparsepcf_get_glyph_indices(file, len, font.enc_table, &font.encoding, &glyph, glyph, 1)) {
 			perror("libparsepcf_get_glyph_indices");
 			exit(1);
@@ -772,6 +769,7 @@ main(int argc, char *argv[])
 			glyph = (size_t)strtoul(argv[1], NULL, 16);
 			print_glyph(glyph);
 		} else {
+			printf("This demo assumes the font uses ASCII or UCS-2 encoding\n");
 			for (; argc--; argv++) {
 				print_line(*argv);
 				printf("\n");
