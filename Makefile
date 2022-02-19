@@ -73,6 +73,7 @@ install: libparsepcf.a libparsepcf.$(LIBEXT)
 	mkdir -p -- "$(DESTDIR)$(PREFIX)/include"
 	cp -- libparsepcf.a "$(DESTDIR)$(PREFIX)/lib/"
 	cp -- libparsepcf.$(LIBEXT) "$(DESTDIR)$(PREFIX)/lib/libparsepcf.$(LIBMINOREXT)"
+	$(FIX_INSTALL_NAME) "$(DESTDIR)$(PREFIX)/lib/libparsepcf.$(LIBMINOREXT)"
 	ln -sf -- libparsepcf.$(LIBMINOREXT) "$(DESTDIR)$(PREFIX)/lib/libparsepcf.$(LIBMAJOREXT)"
 	ln -sf -- libparsepcf.$(LIBMAJOREXT) "$(DESTDIR)$(PREFIX)/lib/libparsepcf.$(LIBEXT)"
 	cp -- libparsepcf.h "$(DESTDIR)$(PREFIX)/include/"
