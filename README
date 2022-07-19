@@ -1,1 +1,11 @@
-libparsepcf is a C library for interpreting PCF (Portable Compiled Format) font files.
+NAME
+	libparsepcf - Library for interpreting PCF (Portable Compiled Format) font files
+
+DESCRIPTION
+	libparsepcf is a C library for interpreting PCF (Portable Compiled Format) font
+	files. It can be used to examine the contents of a font file. It does not render
+	text, instead the user is given enough information to implement it's own
+	rendering; nor is the library capable of creating PCF files.
+
+SEE ALSO
+	None
