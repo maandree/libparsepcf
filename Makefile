@@ -46,6 +46,7 @@ HDR =\
 	common.h
 
 LOBJ = $(OBJ:.o=.lo)
+SRC = $(OBJ:.o=.c)
 
 
 all: libparsepcf.a libparsepcf.$(LIBEXT) demo
