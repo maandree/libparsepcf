@@ -2,7 +2,6 @@
 #include "common.h"
 
 
-
 int
 libparsepcf_get_accelerators(const char *file, size_t size,
                              const struct libparsepcf_table *table,

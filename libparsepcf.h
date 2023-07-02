@@ -9,10 +9,47 @@
 /* Based on documentation from FontForge: https://fontforge.org/docs/techref/pcf-format.html */
 
 
+
+/**
+ * Table metadata
+ */
 struct libparsepcf_table {
+	/**
+	 * The table type, support values are:
+	 * - LIBPARSEPCF_PROPERTIES
+	 * - LIBPARSEPCF_ACCELERATORS
+	 * - LIBPARSEPCF_METRICS
+	 * - LIBPARSEPCF_BITMAPS
+	 * - LIBPARSEPCF_INK_METRICS
+	 * - LIBPARSEPCF_BDF_ENCODINGS
+	 * - LIBPARSEPCF_SWIDTHS
+	 * - LIBPARSEPCF_GLYPH_NAMES
+	 * - LIBPARSEPCF_BDF_ACCELERATORS
+	 * 
+	 * (The set in these values are non-overlapping,
+	 * however they cannot be combined.)
+	 */
 	uint32_t type;
+
+	/**
+	 * How the data in the table is formatted
+	 * 
+	 * This is only unsed internally, and supported
+	 * values are not exposed the the user
+	 */
 	uint32_t format;
+
+	/**
+	 * The size of the table
+	 */
 	uint32_t size;
+
+	/**
+	 * The table's offset in the file
+	 * 
+	 * (The file is padded with NUL bytes to align
+	 * each table to a 4 byte boundary)
+	 */
 	uint32_t offset;
 };
 
@@ -27,10 +64,37 @@ struct libparsepcf_table {
 #define LIBPARSEPCF_GLYPH_NAMES      (UINT32_C(1) << 7)
 #define LIBPARSEPCF_BDF_ACCELERATORS (UINT32_C(1) << 8)
 
-int libparsepcf_get_table_count(const char *, size_t, size_t *countp);
-int libparsepcf_get_tables(const char *, size_t, struct libparsepcf_table *tables, size_t first, size_t count);
+/**
+ * Get the number of tables in the file
+ * 
+ * @param   file    The file content
+ * @param   size    The file size
+ * @param   countp  Output parameter for the number of tables in the file
+ * @return          0 on success, -1 on failure
+ * 
+ * @throws  EBFONT  The file is not a properly formatted PCF file
+ */
+int libparsepcf_get_table_count(const char *, size_t, size_t *);
+
+/**
+ * Get table metadata from the file
+ * 
+ * @param   file    The file content
+ * @param   size    The file size
+ * @param   tables  Output buffer for the table metadata
+ * @param   first   The index of the first table to store in `tables`,
+ *                  the first table in the file has the index 0
+ * @param   count   The number of tables to store in `tables`;
+ *                  may not return the number of tables as retrieved
+ *                  by `libparsepcf_get_table_count`
+ * @return          0 on success, -1 on failure
+ * 
+ * @throws  EBFONT  The file is not a properly formatted PCF file
+ */
+int libparsepcf_get_tables(const char *, size_t, struct libparsepcf_table *, size_t, size_t);
 
 
+
 
 struct libparsepcf_properties {
 	size_t property_count;
@@ -57,6 +121,7 @@ int libparsepcf_get_property_subtable(const char *, size_t,
                                       struct libparsepcf_property_subtable *, size_t, size_t);
 
 
+
 
 struct libparsepcf_metrics {
 	int16_t left_side_bearing;
@@ -74,6 +139,7 @@ int libparsepcf_get_metrics(const char *, size_t,
                             struct libparsepcf_metrics *, size_t, size_t);
 
 
+
 
 struct libparsepcf_glyph_names {
 	size_t glyph_count;
@@ -91,6 +157,7 @@ int libparsepcf_get_glyph_name_subtable(const char *, size_t,
                                         const char **, size_t, size_t);
 
 
+
 
 struct libparsepcf_bitmaps {
 	size_t glyph_count;
@@ -112,6 +179,7 @@ int libparsepcf_get_bitmap_offsets(const char *, size_t,
                                    size_t *, size_t, size_t);
 
 
+
 
 struct libparsepcf_encoding {
 	uint16_t min_byte2;
@@ -146,6 +214,7 @@ int libparsepcf_get_glyph_indices(const char *, size_t,
                                   size_t *, size_t, size_t);
 
 
+
 
 struct libparsepcf_accelerators {
 	/**
@@ -195,6 +264,7 @@ int libparsepcf_get_swidth_count(const char *, size_t, const struct libparsepcf_
 int libparsepcf_get_swidths(const char *, size_t, const struct libparsepcf_table *, int32_t *, size_t, size_t);
 
 
+
 
 struct libparsepcf_font {
 	const struct libparsepcf_table *prob_table;

@@ -5,9 +5,8 @@
 int16_t
 libparsepcf_parse_int16_from_unsigned__(uint16_t u)
 {
-	if (u & UINT16_C(0x8000)) {
+	if (u & UINT16_C(0x8000))
 		return (int16_t)(uint16_t)~u - 1;
-	} else {
+	else
 		return (int16_t)u;
-	}
 }

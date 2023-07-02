@@ -1,3 +1,4 @@
+/* See LICENSE file for copyright and license details. */
 #include "libparsepcf.h"
 #include <fcntl.h>
 #include <stdio.h>
