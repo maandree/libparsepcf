@@ -1,0 +1,31 @@
+.TH LIBPARSEPCF.H 0 LIBPARSEPCF
+.SH NAME
+libparsepcf.h \- Header file for interpreting PCF (Portable Compiled Format) font files
+
+.SH YNOPSIS
+.nf
+#include <libparsepcf.h>
+.fi
+.PP
+Link with
+.IR -lparsepcf .
+
+.SH DESCRIPTION
+The
+.B <libparsepcf.h>
+header defines structures, constants, and functions for
+interpreting PCF (Portable Compiled Format) font files.
+.PP
+There are two primary ways to parse the files, either
+by reading their tables one by one manually using the
+.BR libparsepcf_get_tables (3)
+function, or letting the library put all tables into
+an organised structure using the
+.BR libparsepcf_preparse_font (3)
+function. These two man pages will provide further
+information for to interpret PCF files.
+
+.SH SEE ALSO
+.BR libparsepcf (7),
+.BR libparsepcf_get_tables (3),
+.BR libparsepcf_preparse_font.3 (3)
