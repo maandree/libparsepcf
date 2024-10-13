@@ -976,5 +976,4 @@ int libparsepcf_preparse_font(const void *, size_t, struct libparsepcf_font *);
 void libparsepcf_destroy_preparsed_font(struct libparsepcf_font *);
 
 
-
 #endif
