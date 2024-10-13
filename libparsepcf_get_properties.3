@@ -1,0 +1,180 @@
+.TH LIBPARSEPCF_GET_PROPERTIES 3 LIBPARSEPCF
+.SH NAME
+libparsepcf_get_properties \- Get font properties
+
+.SH SYNOPSIS
+.nf
+#include <libparsepcf.h>
+
+#define LIBPARSEPCF_PROPERTIES /* value omitted */
+
+struct libparsepcf_properties {
+	size_t \fIproperty_count\fP;
+	/* fields intended for internal use omitted */
+};
+
+struct libparsepcf_property_subtable {
+	const char *\fIname\fP;
+	int \fIis_string_property\fP;
+	union {
+		int32_t \fIsigned_value\fP;
+		const char *\fIstring_value\fP;
+	} \fIvalue\fP;
+};
+
+int libparsepcf_get_properties(const void *\fIdata\fP, size_t \fIsize\fP,
+                               const struct libparsepcf_table *\fItable\fP,
+                               struct libparsepcf_properties *\fImeta_out\fP);
+
+int libparsepcf_get_property_subtable(const void *\fIdata\fP, size_t \fIsize\fP,
+                                      const struct libparsepcf_table *\fItable\fP,
+                                      const struct libparsepcf_properties *\fImeta\fP,
+                                      struct libparsepcf_property_subtable *\fIprops\fP,
+                                      size_t \fIfirst\fP, size_t \fIcount\fP);
+.fi
+.PP
+Link with
+.IR -lparsepcf .
+
+.SH DESCRIPTION
+A PCF font files should record font
+properties in the table with the type
+.B LIBPARSEPCF_PROPERTIES
+which can be retrieved with the
+.BR libparsepcf_get_tables (3)
+function.
+.PP
+Once the
+.B LIBPARSEPCF_PROPERTIES
+table has been identified, it can be passed as
+the third argument
+.RI ( table )
+to the
+.BR libparsepcf_get_properties ()
+function along with the font file contents in the
+.I data
+argument and size, in bytes, of the file in the
+.I size
+argument. The
+.BR libparsepcf_get_properties ()
+function will store the number of available
+properties in
+.IR meta_out->property_count ,
+as well as internal information needed by the
+.BR libparsepcf_get_property_subtable ()
+function in other fields in
+.IR *meta_out .
+.PP
+Then the
+.BR libparsepcf_get_property_subtable ()
+function can be used to get each font property.
+The first four arguments shall be
+the same as with
+.BR libparsepcf_get_properties ().
+.I first
+shall be the index of the property with the lowest
+index of the property the function shall get, and
+.I count
+shall be the number of consecutive properties
+(including the first properties) to get. For each
+queried properties with index
+.IR i ,
+the property name will be stored in
+.I props[i]->name
+and the property value will be stored in
+.I props[i]->value.signed_value
+it it is numerical and in
+.I props[i]->value.string_value
+if it is a textual. In the former case
+.I props[i]->is_string_property
+will be set to 0 and in the latter case
+.I props[i]->is_string_property
+will be set to 1.
+.PP
+The application shall ensure that
+.IR "first + count <= meta->property_count" .
+
+.SH RETURN VALUE
+The
+.BR libparsepcf_get_properties ()
+and
+.BR libparsepcf_get_property_subtable ()
+functions return 0 upon successful completion.
+On failure, -1 is returned and
+.I errno
+is set appropriately to indicate the error.
+
+.SH ERRORS
+The
+.BR libparsepcf_get_properties ()
+and
+.BR libparsepcf_get_property_subtable ()
+functions fail if:
+.TP
+.B EBFONT
+The font file is corrupt or unsupported.
+
+.SH EXTENDED DESCRIPTION
+For X fonts, the file will some of the properties
+listing in
+.IR https://www.x.org/releases/X11R7.7/doc/xorg-docs/xlfd/xlfd.html .
+Particularly important fields are:
+.TP
+.B FAMILY_NAME
+The name of the font. Note that the name is not
+necessarily unique, but must be combined with other
+identification properties to unique identify the
+font or font family.
+.TP
+.B FONT
+X Logical Font Descriptor. This uniquely identifies
+the the font and some of its properties.
+.TP
+.B SLANT
+The font's slant style. Common values are
+\(dqR\(dq for roman, \(dqI\(dq for italic, and
+\(dqO\(dq for oblique.
+.TP
+.B ADD_STYLE_NAME
+The font's style, apart from slant style. Common
+values are \(dqSerif\(dq, \(dqSans Serif\(dq, and
+\(dq\(dq.
+.TP
+.B SPACING
+The font's width-variableness, \(dqP\(dq for
+proportional, \(dqM\(dq for monospaced, and
+\(dqC\(dq for character-cell (monospaced font that
+follows the standard typewriter character cell model).
+.TP
+.B AVERAGE_WIDTH
+Mostly useful for character-cell types, where it
+specifies the cell width in decipixels.
+.TP
+.B PIXEL_SIZE
+The height of the font in pixels.
+.TP
+.B CAP_HEIGHT
+The nominal height of majuscule letters in pixels.
+.TP
+.B X_HEIGHT
+The nominal height of minuscule letters in pixels.
+.TP
+.B POINT_SIZE
+The height of the font in decipoints.
+.TP
+.B RESOLUTION_X
+The horizontal resolution, in dots per inch, the
+font was designed for.
+.TP
+.B RESOLUTION_Y
+The vertical resolution, in dots per inch, the
+font was designed for.
+.TP
+.BR CHARSET_REGISTRY " and " CHARSET_ENCODING
+Identifies the character encoding used by the
+font, ISO10646-1 (the combination \(dqISO10646\(dq,
+\(dq1\(dq) is particularly important.
+
+.SH SEE ALSO
+.BR libparsepcf (7),
+.BR libparsepcf_preparse_font (3)

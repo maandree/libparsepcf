@@ -1,0 +1,101 @@
+.TH LIBPARSEPCF_GET_TABLES 3 LIBPARSEPCF
+.SH NAME
+libparsepcf_get_tables \- Get font data tables
+
+.SH SYNOPSIS
+.nf
+#include <libparsepcf.h>
+
+struct libparsepcf_table {
+	uint32_t \fItype\fP;
+	/* fields intended for internal use omitted */
+};
+
+int libparsepcf_get_table_count(const void *\fIdata\fP, size_t \fIsize\fP, size_t *\fIcount_out\fP);
+
+int libparsepcf_get_tables(const void *\fIdata\fP, size_t \fIsize\fP,
+                           struct libparsepcf_table *\fItables_out\fP,
+                           size_t \fIfirst\fP, size_t \fIcount\fP);
+.fi
+.PP
+Link with
+.IR -lparsepcf .
+
+.SH DESCRIPTION
+PCF font files contain a set of tables for containing
+different information about the font or its glyphs. The
+.BR libparsepcf_get_table_count ()
+function is used to determine the number of the tables
+in the file, and the
+.BR libparsepcf_get_tables ()
+function is used to get the tables.
+.PP
+The
+.I data
+argument shall the font file content and the
+.I size
+argument shall be the size of the file in bytes.
+.PP
+The
+.BR libparsepcf_get_table_count ()
+function will store, in
+.IR *count_out ,
+the number of tables available in the font file.
+.PP
+The
+.BR libparsepcf_get_table ()
+function will store information about tables in
+.IR tables_out .
+.I first
+shall be the index of the table with the lowest
+index of the table the function shall get the
+information for, and
+.I count
+shall be the number of consecutive tables
+(including the first table) to get the information
+for. For each queried table with index
+.IR i ,
+the table's type (what it is used for) will be
+stored in
+.IR tables_out[i-first].table ,
+.I tables_out[i-first]
+will also contain additional internal information
+required by the functions used to parse the function,
+see the
+.B SEE ALSO
+section for functions used to parse individual tables
+(the functions whose name include \(dq_get_\(dq)).
+.PP
+The application shall ensure that
+.IR "first + count <= *count_out" .
+
+.SH RETURN VALUE
+The
+.BR libparsepcf_get_table_count ()
+and
+.BR libparsepcf_get_tables ()
+functions return 0 upon successful completion.
+On failure, -1 is returned and
+.I errno
+is set appropriately to indicate the error.
+
+.SH ERRORS
+The
+.BR libparsepcf_get_table_count ()
+and
+.BR libparsepcf_get_tables ()
+functions fail if:
+.TP
+.B EBFONT
+The font file is corrupt or unsupported.
+
+.SH SEE ALSO
+.BR libparsepcf (7),
+.BR libparsepcf_preparse_font (3),
+.BR libparsepcf_get_accelerators (3),
+.BR libparsepcf_get_bitmaps (3),
+.BR libparsepcf_get_encoding (3),
+.BR libparsepcf_get_glyph_names (3),
+.BR libparsepcf_get_metrics (3),
+.BR libparsepcf_get_properties (3),
+.BR libparsepcf_get_swidths (3)

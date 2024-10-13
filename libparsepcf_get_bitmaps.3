@@ -1,0 +1,162 @@
+.TH LIBPARSEPCF_GET_BITMAPS 3 LIBPARSEPCF
+.SH NAME
+libparsepcf_get_bitmaps \- Get glyph bitmaps
+
+.SH SYNOPSIS
+.nf
+#include <libparsepcf.h>
+
+#define LIBPARSEPCF_BITMAPS /* value omitted */
+
+struct libparsepcf_bitmaps {
+	size_t \fIglyph_count\fP;
+	size_t \fIbit_packing\fP;
+	size_t \fIrow_padding\fP;
+	int \fImsbyte_first\fP;
+	int \fImsbit_first\fP;
+	const uint8_t *\fIbitmap_data\fP;
+	/* fields intended for internal use omitted */
+};
+
+int libparsepcf_get_bitmaps(const void *\fIdata\fP, size_t \fIsize\fP,
+                            const struct libparsepcf_table *\fItable\fP,
+                            struct libparsepcf_bitmaps *\fImeta_out\fP);
+
+int libparsepcf_get_bitmap_offsets(const void *\fIdata\fP, size_t \fIsize\fP,
+                                   const struct libparsepcf_table *\fItable\fP,
+                                   const struct libparsepcf_bitmaps *\fImeta\fP,
+                                   size_t *\fIoffsets_out\fP,
+                                   size_t \fIfirst\fP, size_t \fIcount\fP);
+.fi
+.PP
+Link with
+.IR -lparsepcf .
+
+.SH DESCRIPTION
+Glyphs in PCF fonts are encoded as bitmaps which
+can be looked up in the table with the type
+.BR LIBPARSEPCF_BITMAPS ,
+which can be retrieved with the
+.BR libparsepcf_get_tables (3)
+function.
+.PP
+Once the
+.B LIBPARSEPCF_BITMAPS
+table has been identified, it can be passed as
+the third argument
+.RI ( table )
+to the
+.BR libparsepcf_get_bitmaps ()
+function along with the font file contents in the
+.I data
+argument and size, in bytes, of the file in the
+.I size
+argument. The
+.BR libparsepcf_get_bitmaps ()
+function will store the number of available
+glyphs in
+.IR meta_out->glyph_count ,
+which shall be used to check that all glyphs
+have a bitmap recorded. The
+.BR libparsepcf_get_bitmaps ()
+function will store information needed to decode
+the bitmap in
+.IR *meta_out .
+.PP
+Then the
+.BR libparsepcf_get_bitmap_offsets ()
+function can be used to get offset from
+.I meta_out->bitmap_data
+where the bitmap for each glyph is stored.
+The first four arguments shall be the
+same as with
+.BR libparsepcf_get_bitmaps ().
+.I first
+shall be the index of the glyph with the lowest index
+of the glyph the function shall get the bitmap offset
+for, and
+.I count
+shall be the number of consecutive glyphs
+(including the first glyph) to get this information
+for. For each queried glyph with index
+.IR i ,
+the bitmap offset will be stored in
+.IR offsets_out[i-first] .
+.PP
+The application shall ensure that
+.IR "first + count <= meta->glyph_count" .
+.PP
+Note that glyph indices are not the same as character
+codepoints. See
+.BR libparsepcf_get_encoding (3)
+for details about mapping characters to glyphs.
+.PP
+The be able to interpret a glyph's bitmap, it's ink
+metrics must also be acquired. The
+.BR libparsepcf_get_metrics (3)
+function is used to get a glyph's ink metrics. The
+ink metrics describe the boundaries of the bitmap,
+but the
+.BR libparsepcf_get_bitmaps ()
+function returns encoding information. The bitmap
+encodes the glyph row by row, from top to bottom,
+at the end of each row, padding is inserted into
+the bitmap to align the beginning of the next row
+in the bitmap. It is always padded to a number of
+two bytes, specified in
+.IR meta_out->row_padding .
+For each row, the cells are encoded from left to
+right, there are three fields in
+.I meta_out
+that affect the order of the bits. For example,
+the bits can be group in bytes, dual-byte words or
+quad-byte words. The number of bytes in each group
+is specified in
+.IR meta_out->bit_packing ,
+which is always a power of two and no greater than
+.IR meta_out->row_padding ,
+and each these units are intepreted as unsigned integers,
+that are either encoded in big endian (most significant
+byte first) or little endian (least significant
+byte first).
+.I meta_out->msbyte_first
+will either be 0 or 1. If 0, these units are encoded
+in little endian; if 1 these units are encoded in
+big endian. Once a unit as been interpreted as in
+unsigned integer, its bits can be inspected to
+determine the value of each cell the unit covers,
+the cells are order from left to right, but the
+bits either ordered from least significant to most
+significant or from most significant to least
+significant, and for each set bit the corresponding
+cell is inked and for each cleared bit the
+corresponding cell is uninked.
+.I meta_out->msbit_first
+is used to determine the bit order; it will either
+be 0 or 1. If 0, the bits are ordered from least
+significant to most significant; if 1, the bits are
+ordered from most significant to least significant.
+
+.SH RETURN VALUE
+The
+.BR libparsepcf_get_bitmaps ()
+and
+.BR libparsepcf_get_bitmap_offsets ()
+functions return 0 upon successful completion.
+On failure, -1 is returned and
+.I errno
+is set appropriately to indicate the error.
+
+.SH ERRORS
+The
+.BR libparsepcf_get_bitmaps ()
+and
+.BR libparsepcf_get_bitmap_offsets ()
+functions fail if:
+.TP
+.B EBFONT
+The font file is corrupt or unsupported.
+
+.SH SEE ALSO
+.BR libparsepcf (7),
+.BR libparsepcf_preparse_font (3)

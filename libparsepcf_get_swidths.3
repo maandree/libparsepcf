@@ -1,0 +1,105 @@
+.TH LIBPARSEPCF_GET_SWIDTHS 3 LIBPARSEPCF
+.SH NAME
+libparsepcf_get_swidths \- Get em-width of glyphs
+
+.SH SYNOPSIS
+.nf
+#include <libparsepcf.h>
+
+#define LIBPARSEPCF_SWIDTHS /* value omitted */
+
+int libparsepcf_get_swidth_count(const void *\fIdata\fP, size_t \fIsize\fP,
+                                 const struct libparsepcf_table *\fItable\fP,
+                                 size_t *\fIcount_out\fP);
+
+int libparsepcf_get_swidths(const void *\fIdata\fP, size_t \fIsize\fP,
+                            const struct libparsepcf_table *\fItable\fP,
+                            int32_t *\fIwidths_out\fP,
+                            size_t \fIfirst\fP, size_t \fIcount\fP);
+.fi
+.PP
+Link with
+.IR -lparsepcf .
+
+.SH DESCRIPTION
+If the so called scaleable widths of the glyphs
+in a PCF font file is recorded in the file, they
+are recorded in the table with the type
+.B LIBPARSEPCF_SWIDTHS
+retrieved with the
+.BR libparsepcf_get_tables (3)
+function.
+.PP
+The \(dqscaleable width\(dq of a glyph is the
+width measured in a relative unit, in the case
+of PCF files, milli-ems.
+.PP
+Once the
+.B LIBPARSEPCF_SWIDTHS
+table has been identified, it can be passed as
+the third argument
+.RI ( table )
+to the
+.BR libparsepcf_get_swidth_count ()
+function along with the font file contents
+in the
+.I data
+argument and size, in bytes, of the file in the
+.I size
+argument. The
+.BR libparsepcf_get_swidth_count ()
+function will store the number of available
+glyphs in
+.IR *count_out ,
+which shall be used to check that all glyphs
+have a width recorded.
+.PP
+Then the
+.BR libparsepcf_get_swidths ()
+function can be used to get the width, in
+milli-ems, of each glyph. The first three
+arguments shall be the same as with
+.BR libparsepcf_get_swidth_count ().
+.I first
+shall be the index of the glyph with the lowest
+index of the glyph the function shall get the
+width for, and
+.I count
+shall be the number of consecutive glyphs
+(including the first glyph) to get this information
+for. For each queried glyph with index
+.IR i ,
+the width will be stored in
+.IR widths_out[i-first] .
+.PP
+The application shall ensure that
+.IR "first + count <= *count_out" .
+.PP
+Note that glyph indices are not the same as character
+codepoints. See
+.BR libparsepcf_get_encoding (3)
+for details about mapping characters to glyphs.
+
+.SH RETURN VALUE
+The
+.BR libparsepcf_get_swidth_count ()
+and
+.BR libparsepcf_get_swidths ()
+functions return 0 upon successful completion.
+On failure, -1 is returned and
+.I errno
+is set appropriately to indicate the error.
+
+.SH ERRORS
+The
+.BR libparsepcf_get_swidth_count ()
+and
+.BR libparsepcf_get_swidths ()
+functions fail if:
+.TP
+.B EBFONT
+The font file is corrupt or unsupported.
+
+.SH SEE ALSO
+.BR libparsepcf (7),
+.BR libparsepcf_preparse_font (3)

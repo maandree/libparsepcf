@@ -1,0 +1,111 @@
+.TH libparsepcf_get_glyph_names 3 LIBPARSEPCF
+.SH NAME
+libparsepcf_get_glyph_names \- Get glyph PostScript names
+
+.SH SYNOPSIS
+.nf
+#include <libparsepcf.h>
+
+#define LIBPARSEPCF_GLYPH_NAMES /* value omitted */
+
+struct libparsepcf_glyph_names {
+	size_t \fIglyph_count\fP;
+	/* fields intended for internal use omitted */
+};
+
+int libparsepcf_get_glyph_names(const void *\fIdata\fP, size_t \fIsize\fP,
+                                const struct libparsepcf_table *\fItable\fP,
+                                struct libparsepcf_glyph_names *\fImeta_out\fP);
+
+int libparsepcf_get_glyph_name_subtable(const void *\fIdata\fP, size_t \fIsize\fP,
+                                        const struct libparsepcf_table *\fItable\fP,
+                                        const struct libparsepcf_glyph_names *\fImeta\fP,
+                                        const char **\fInames_out\fP,
+                                        size_t \fIfirst\fP, size_t \fIcount\fP);
+.fi
+.PP
+Link with
+.IR -lparsepcf .
+
+.SH DESCRIPTION
+If the PostScript glyph names are stored in
+a PCF font file, they are recorded in the table
+with the type
+.B LIBPARSEPCF_GLYPH_NAMES
+retrieved with the
+.BR libparsepcf_get_tables (3)
+function.
+.PP
+Once the
+.B LIBPARSEPCF_GLYPH_NAMES
+table has been identified, it can be passed as
+the third argument
+.RI ( table )
+to the
+.BR libparsepcf_get_glyph_names ()
+function along with the font file contents
+in the
+.I data
+argument and size, in bytes, of the file in the
+.I size
+argument. The
+.BR libparsepcf_get_glyph_names ()
+function will store the number of available
+glyphs in
+.IR meta_out->glyph_count ,
+which shall be used to check that all glyphs
+have a name recorded, as well as internal
+information needed by the
+.BR libparsepcf_get_glyph_name_subtable ()
+function in other fields in
+.IR *meta_out .
+.PP
+Then the
+.BR libparsepcf_get_glyph_name_subtable ()
+function can be used to get the PostScript names
+of each glyph. The first four arguments shall be
+the same as with
+.BR libparsepcf_get_glyph_names ().
+.I first
+shall be the index of the glyph with the lowest
+index of the glyph the function shall get the
+name for, and
+.I count
+shall be the number of consecutive glyphs
+(including the first glyph) to get this information
+for. For each queried glyph with index
+.IR i ,
+the PostScript name will be stored in
+.IR names_out[i-first] .
+.PP
+The application shall ensure that
+.IR "first + count <= meta->glyph_count" .
+.PP
+Note that glyph indices are not the same as character
+codepoints. See
+.BR libparsepcf_get_encoding (3)
+for details about mapping characters to glyphs.
+
+.SH RETURN VALUE
+The
+.BR libparsepcf_get_glyph_names ()
+and
+.BR libparsepcf_get_glyph_name_subtable ()
+functions return 0 upon successful completion.
+On failure, -1 is returned and
+.I errno
+is set appropriately to indicate the error.
+
+.SH ERRORS
+The
+.BR libparsepcf_get_glyph_names ()
+and
+.BR libparsepcf_get_glyph_name_subtable ()
+functions fail if:
+.TP
+.B EBFONT
+The font file is corrupt or unsupported.
+
+.SH SEE ALSO
+.BR libparsepcf (7),
+.BR libparsepcf_preparse_font (3)

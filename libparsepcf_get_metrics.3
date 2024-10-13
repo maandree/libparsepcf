@@ -1,0 +1,150 @@
+.TH LIBPARSEPCF_GET_METRICS 3 LIBPARSEPCF
+.SH NAME
+libparsepcf_get_metrics \- Get glyph metrics
+
+.SH SYNOPSIS
+.nf
+#include <libparsepcf.h>
+
+#define LIBPARSEPCF_METRICS     /* value omitted */
+#define LIBPARSEPCF_INK_METRICS /* value omitted */
+
+struct libparsepcf_metrics {
+	int16_t \fIleft_side_bearing\fP;
+	int16_t \fIright_side_bearing\fP;
+	int16_t \fIcharacter_width\fP;
+	int16_t \fIcharacter_ascent\fP;
+	int16_t \fIcharacter_descent\fP;
+	uint16_t \fIcharacter_attributes\fP;
+};
+
+int libparsepcf_get_metrics_count(const void *\fIdata\fP, size_t \fIsize\fP,
+                                  const struct libparsepcf_table *\fItable\fP,
+                                  size_t *\fIcount_out\fP);
+
+int libparsepcf_get_metrics(const void *\fIdata\fP, size_t \fIsize\fP,
+                            const struct libparsepcf_table *\fItable\fP,
+                            struct libparsepcf_metrics *\fImetrics_out\fP,
+                            size_t \fIfirst\fP, size_t \fIcount\fP);
+.fi
+.PP
+Link with
+.IR -lparsepcf .
+
+.SH DESCRIPTION
+In PCF font files, the layout metrics for each
+glyph is recorded in a type with the tape
+.BR LIBPARSEPCF_METRICS ,
+which can be retrieved with the
+.BR libparsepcf_get_tables (3)
+function. The file may also contain the table
+.B LIBPARSEPCF_INK_METRICS
+for the ink metrics. If however no
+.B LIBPARSEPCF_INK_METRICS
+is present in the file, the
+.B LIBPARSEPCF_METRICS
+file be used for this purpose instead in
+addition to layout metrics
+.PP
+Once the
+.B LIBPARSEPCF_METRICS
+or
+.B LIBPARSEPCF_INK_METRICS
+table has been identified, it can be passed as
+the third argument
+.RI ( table )
+to the
+.BR libparsepcf_get_metrics_count ()
+function along with the font file contents in the
+.I data
+argument and size, in bytes, of the file in the
+.I size
+argument. The
+.BR libparsepcf_get_metrics_count ()
+function will store the number of available
+glyphs in
+.IR *count_out ,
+which shall be used to check that all glyphs
+have a metrics recorded.
+.PP
+Then the
+.BR libparsepcf_get_metrics ()
+function can be used to get the glyph metrics of
+each glyph. The first three arguments shall be the
+same as with
+.BR libparsepcf_get_metrics_count ().
+.I first
+shall be the index of the glyph with the lowest index
+of the glyph the function shall get the metrics for, and
+.I count
+shall be the number of consecutive glyphs
+(including the first glyph) to get this information
+for. For each queried glyph with index
+.IR i ,
+the metrics will be stored in
+.IR metrics_out[i-first] .
+.PP
+The application shall ensure that
+.IR "first + count <= *count_out" .
+.PP
+Note that glyph indices are not the same as character
+codepoints. See
+.BR libparsepcf_get_encoding (3)
+for details about mapping characters to glyphs.
+.PP
+The glyph metrics consists of five fields:
+.TP
+.I left_side_bearing
+The number of pixels right of (negative if left of)
+the origin (caret position) of the leftmost ink-on
+pixel in the glyph
+.TP
+.I right_side_bearing
+The number of pixels right of (negative if left of)
+the origin (caret position) of the rightmost ink-on
+pixel in the glyph
+.TP
+.I character_width
+The number of pixels the next characters origin shall
+be right of the current character's origin (that is
+the number of pixels the caret shall advance)
+.TP
+.I character_ascent
+The number of pixels the character ascend above
+the baseline (if non-positive, it's fully below
+the baseline)
+.TP
+.I character_descent
+The number of pixels the character descend below
+the baseline (if non-positive, it's fully above
+the baseline)
+.PP
+Along with the glyph metrics, each glyph may
+also have an applications-specific attribute
+store in the
+.I character_attributes
+field.
+
+.SH RETURN VALUE
+The
+.BR libparsepcf_get_metrics_count ()
+and
+.BR libparsepcf_get_metrics ()
+functions return 0 upon successful completion.
+On failure, -1 is returned and
+.I errno
+is set appropriately to indicate the error.
+
+.SH ERRORS
+The
+.BR libparsepcf_get_metrics_count ()
+and
+.BR libparsepcf_get_metrics ()
+functions fail if:
+.TP
+.B EBFONT
+The font file is corrupt or unsupported.
+
+.SH SEE ALSO
+.BR libparsepcf (7),
+.BR libparsepcf_preparse_font (3)

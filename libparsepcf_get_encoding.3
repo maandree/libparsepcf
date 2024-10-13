@@ -1,0 +1,170 @@
+.TH LIBPARSEPCF_GET_ENCODING 3 LIBPARSEPCF
+.SH NAME
+libparsepcf_get_encoding \- Get glyph index
+
+.SH SYNOPSIS
+.nf
+#include <libparsepcf.h>
+
+#define LIBPARSEPCF_BDF_ENCODINGS /* value omitted */
+
+#define LIBPARSEPCF_NOT_ENCODED ((size_t)0xFFFF)
+
+struct libparsepcf_encoding {
+	uint16_t \fImin_byte2\fP;
+	uint16_t \fImax_byte2\fP;
+	uint16_t \fImin_byte1\fP;
+	uint16_t \fImax_byte1\fP;
+	uint16_t \fIdefault_glyph\fP;
+	size_t \fIchar_count\fP;
+};
+
+int libparsepcf_get_encoding(const void *\fIdata\fP, size_t \fIsize\fP,
+                             const struct libparsepcf_table *\fItable\fP,
+                             struct libparsepcf_encoding *\fImeta_out\fP);
+
+int libparsepcf_get_glyph_indices(const void *\fIdata\fP, size_t \fIsize\fP,
+                                  const struct libparsepcf_table *\fItable\fP,
+                                  const struct libparsepcf_encoding *\fImeta\fP,
+                                  size_t *\fIindices_out\fP,
+                                  size_t \fIfirst\fP, size_t \fIcount\fP);
+.fi
+.PP
+Link with
+.IR -lparsepcf .
+
+.SH DESCRIPTION
+PCF fonts file are encoded for specific for characters
+sets and encodings do not encode glyphs by codepoints
+but rather by how characters are encoded. To get the
+appropriate glyph for a character, the
+.BR libparsepcf_get_properties (3)
+function must first be used to determine the encoding,
+and if it does not match the expeced encoding translate
+the text into the encoding used by the font (it may
+also be possible to load a version of the font the
+uses the expected encoding). Second, the
+.BR libparsepcf_get_tables (3)
+function is used to find the table with the type
+.BR LIBPARSEPCF_BDF_ENCODINGS ,
+which is then passed into the
+.BR libparsepcf_get_encoding (3)
+function as it's third argument
+.RI ( table ),
+along with the font file contents in the
+.I data
+argument and size, in bytes, of the file in the
+.I size
+argument to get the coverage of the font, encoding
+information, and the default glyph to use when the
+font does not have the glyph for a character.
+If the encoding uses one byte for each character,
+.I meta_out->min_byte1
+and
+.I meta_out->max_byte1
+are both set to 0, otherwise, the encoding uses
+two bytes for each character.
+The index of the default glyph will be stored in
+.IR meta_out->default_glyph .
+The fields
+.IR meta_out->min_byte1 ,
+.IR meta_out->max_byte1 ,
+.IR meta_out->min_byte2 ,
+and
+.I meta_out->max_byte2
+are used to translate an encoded character into
+a character index which can then be mapped into
+a glyph index using the
+.BR libparsepcf_get_glyph_indices ()
+function.
+.PP
+When calling the
+.BR libparsepcf_get_glyph_indices ()
+function, the first four arguments shall be
+the same as passed into the
+.BR libparsepcf_get_encoding ()
+function.
+.I first
+shall be the index of the character with the lowest index
+of the character the function shall get the glyph index
+for, and
+.I count
+shall be the number of consecutive characters
+(including the first character) to get this information
+for. For each queried character with index
+.IR i ,
+the glyph index will be stored in
+.IR indices_out[i-first] ,
+however if character is not encoded (does not have
+a glyph), it the value
+.I LIBPARSEPCF_NOT_ENCODED
+will be stored instead.
+.PP
+The application shall ensure that
+.IR "first + count <= meta->char_count" .
+.PP
+For single-byte encodings, the character index
+is calculated by subtracting
+.I meta_out->min_byte2
+from the character byte, however the application
+must make sure that the value of the character
+byte is at least
+.I meta_out->min_byte2
+but no greater than
+.IR meta_out->max_byte2 .
+.PP
+For dual-bute encodings, the application must
+first ensure that there are two bytes available,
+and ensure that the value of the first byte is
+at least
+.I meta_out->min_byte1
+but no greater than
+.IR meta_out->max_byte1 ,
+and that the value of the second byte is at least
+.I meta_out->min_byte2
+but no greater than
+.IR meta_out->max_byte2 .
+The application can then subtract
+.I meta_out->min_byte1
+from the value of the first byte, and call the
+difference
+.IR a ,
+and subtract
+.I meta_out->min_byte2
+from the value of the second byte, and call the
+difference
+.IR b .
+If the application has already calculated the
+font-constant value
+.IR ".max_byte2 - .min_byte2 + 1" ,
+called
+.IR k .
+The character's index is than calculated by
+.IR "a * k + b" .
+(This is the simplest description of the
+formula but it can be optimised for the
+application to use one less subtract.)
+
+.SH RETURN VALUE
+The
+.BR libparsepcf_get_encoding ()
+and
+.BR libparsepcf_get_glyph_indices ()
+functions return 0 upon successful completion.
+On failure, -1 is returned and
+.I errno
+is set appropriately to indicate the error.
+
+.SH ERRORS
+The
+.BR libparsepcf_get_encoding ()
+and
+.BR libparsepcf_get_glyph_indices ()
+functions fail if:
+.TP
+.B EBFONT
+The font file is corrupt or unsupported.
+
+.SH SEE ALSO
+.BR libparsepcf (7),
+.BR libparsepcf_preparse_font (3)

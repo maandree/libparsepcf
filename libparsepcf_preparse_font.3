@@ -1,0 +1,249 @@
+.TH LIBPARSEPCF_PREPARSE_FONT 3 LIBPARSEPCF
+.SH NAME
+libparsepcf_preprase_font \- Get font data tables and metadata
+
+.SH SYNOPSIS
+.nf
+#include <libparsepcf.h>
+
+struct libparsepcf_font {
+	const struct libparsepcf_table *\fIprob_table\fP;
+	struct libparsepcf_properties \fIprops\fP;
+	const struct libparsepcf_table *\fIaccel_table\fP;
+	struct libparsepcf_accelerators \fIaccels\fP;
+	const struct libparsepcf_table *\fImtx_table\fP;
+	size_t \fImetrics\fP;
+	const struct libparsepcf_table *\fIinkmtx_table\fP;
+	size_t \fIink_metrics\fP;
+	const struct libparsepcf_table *\fIenc_table\fP;
+	struct libparsepcf_encoding \fIencoding\fP;
+	const struct libparsepcf_table *\fIbitmap_table\fP;
+	struct libparsepcf_bitmaps \fIbitmaps\fP;
+	const struct libparsepcf_table *\fIswidth_table\fP;
+	size_t \fIswidths\fP;
+	const struct libparsepcf_table *\fIname_table\fP;
+	struct libparsepcf_glyph_names \fInames\fP;
+	size_t \fIglyph_count\fP;
+	/* fields intended for internal use omitted */
+};
+
+int libparsepcf_preparse_font(const void *\fIdata\fP, size_t \fIsize\fP,
+                              struct libparsepcf_font *\fIfont_out\fP);
+
+int libparsepcf_destroy_preparsed_font(struct libparsepcf_font *\fIfont\fP);
+.fi
+.PP
+Link with
+.IR -lparsepcf .
+
+.SH DESCRIPTION
+PCF font files contain a set of tables for containing
+different information about the font or its glyphs.
+The
+.BR libparsepcf_preparse_font ()
+function can be used, as an alternative to the
+.BR libparsepcf_get_tables (3)
+function, the to locate and load the tables, making
+it easy to use other functions to read the table's
+subtables.
+.PP
+The
+.I data
+argument shall the font file content and the
+.I size
+argument shall be the size of the file in bytes.
+.PP
+If the font file contains a property table
+.RI ( LIBPARSEPCF_PROPERTIES )
+it will be stored in
+.I font_out->prob_table
+and the data retrieved by the
+.BR libparsepcf_get_properties (3)
+function for the
+.BR libparsepcf_get_property_subtable (3)
+function will be stored in
+.IR font_out->probs ,
+otherwise
+.I font_out->prob_table
+will be set to
+.IR NULL .
+.PP
+If the font file contains an \(dqaccelerators\(dq
+table
+.RI ( LIBPARSEPCF_BDF_ACCELERATORS
+(preferred) or
+.I LIBPARSEPCF_ACCELERATORS
+(fallback)) it will be stored in
+.I font_out->accel_table
+and the table will be loaded into
+.IR font_out->accels ,
+otherwise
+.I font_out->accel_table
+will be set to
+.IR NULL .
+Be sure to check that
+.I font_out->accel_table
+is
+.RI non- NULL
+before reading
+.IR font_out->accels .
+.PP
+The glyph layout metrics table
+.RI ( LIBPARSEPCF_METRICS ),
+which can be parsed using the
+.BR libparsepcf_get_metrics (3)
+function, will be stored in
+.I font_out->mtx_table
+and the number of glyph in the table
+will be stored in
+.IR font_out->metrics .
+.PP
+If the font file contains a glyph ink metrics table
+.RI ( LIBPARSEPCF_INK_METRICS ),
+which can be parsed using the
+.BR libparsepcf_get_metrics (3)
+function, will be stored in
+.I font_out->inkmtx_table
+and the number of glyph in the table
+will be stored in
+.IR font_out->ink_metrics ,
+otherwise
+.I font_out->inkmtx_table
+will be set to
+.IR NULL .
+.PP
+The character-to-glyph table
+.RI ( LIBPARSEPCF_BDF_ENCODINGS ),
+which can be parsed using the
+.BR libparsepcf_get_glyph_indices (3)
+function, will be stored in
+.I font_out->enc_table
+and the data retrieved by the
+.BR libparsepcf_get_encoding (3)
+function for the
+.BR libparsepcf_get_glyph_indices (3)
+function will be stored in
+.IR font_out->encoding .
+.PP
+If the font contains a bitmap talbe
+.RI ( LIBPARSEPCF_BITMAPS ),
+it will be stored in
+.IR font_out->bitmap_table
+and data load from the table, using the
+.BR libparsepcf_get_bitmaps (3)
+function will be stored
+.IR font_out->bitmaps ,
+otherwise
+.I font_out->bitmap_table
+will be set to
+.IR NULL .
+Unless
+.I font_out->bitmaps
+is set to
+.IR NULL ,
+the
+.BR libparsepcf_get_bitmap_offsets (3)
+function can be used to get the individual
+bitmaps for each glyph.
+.PP
+If the font file contains a \(dqscaleable\(dq
+width table
+.RI ( LIBPARSEPCF_SWIDTHS ),
+which can be parsed using the
+.BR libparsepcf_get_swidths (3)
+function, will be stored in
+.I font_out->swidth_table
+and the number of glyph in the table
+will be stored in
+.IR font_out->swidths ,
+otherwise
+.I font_out->swidth_table
+will be set to
+.IR NULL .
+.PP
+If the font file contains a PostScript
+glyph name table
+.RI ( LIBPARSEPCF_GLYPH_NAMES ),
+which can be parsed using the
+.BR libparsepcf_get_glyph_name_subtable (3)
+function, will be stored in
+.I font_out->name_table
+and the data retrieved by the
+.BR libparsepcf_get_glyph_names (3)
+function for the
+.BR libparsepcf_get_glyph_name_subtable (3)
+function will be stored in
+.IR font_out->names .
+otherwise
+.I font_out->name_table
+will be set to
+.IR NULL .
+.PP
+The function will ensure that all tables report the
+same number of glyphs, and the number of glyphs will
+be stored in
+.IR font_out->glyph_count ,
+but it may (if the corresponding table is found)
+also be stored in
+.IR font_out->metrics ,
+.IR font_out->ink_metrics ,
+.IR font_out->bitmaps.glyph_count ,
+.IR font_out->names.glyph_count ,
+and
+.IR font_out->swidths .
+.PP
+If the font contains a property table, 
+.PP
+Once the font is not needed anymore, the
+.BR libparsepcf_destroy_preparsed_font ()
+function shall be used to deallocate the memory
+stored in
+.IR *font ,
+it will also reset the contents of
+.IR *font .
+
+.SH RETURN VALUE
+The
+.BR libparsepcf_preparse_font ()
+and
+.BR libparsepcf_destroy_preparsed_font ()
+functions return 0 upon successful completion.
+On failure, -1 is returned and
+.I errno
+is set appropriately to indicate the error.
+
+.SH ERRORS
+The
+.BR libparsepcf_preparse_font ()
+and
+.BR libparsepcf_destroy_preparsed_font ()
+functions fail if:
+.TP
+.B EBFONT
+The font file is corrupt or unsupported.
+
+.SH NOTES
+As the layout metrics shall be used if the
+font file is missing the ink metrics table,
+it may be a good idea, for the application
+to set
+.I font_out->inkmtx_table
+to
+.I font_out->mtx_table
+and
+.I font_out->ink_metrics
+to
+.I font_out->metrics
+if
+.I font_out->inkmtx_table
+is
+.IR NULL .
+The
+.BR libparsepcf_preparse_font ()
+function does not automatically because
+it may be useful for the application to
+know whether the ink metrics and layout
+metrics are identical.
+
+.SH SEE ALSO
+.BR libparsepcf (7)

@@ -1,0 +1,161 @@
+.TH LIBPARSEPCF_GET_ACCELERATORS 3 LIBPARSEPCF
+.SH NAME
+libparsepcf_get_accelerators \- Get font information
+
+.SH SYNOPSIS
+.nf
+#include <libparsepcf.h>
+
+#define LIBPARSEPCF_ACCELERATORS     /* value omitted */
+#define LIBPARSEPCF_BDF_ACCELERATORS /* value omitted */
+
+struct libparsepcf_accelerators {
+	uint8_t \fIno_overlap\fP : 1;
+	uint8_t \fIconstant_metrics\fP : 1;
+	uint8_t \fIterminal_font\fP : 1;
+	uint8_t \fIconstant_width\fP : 1;
+	uint8_t \fIink_inside\fP : 1;
+	uint8_t \fIink_metrics\fP : 1;
+	uint8_t \fIdraw_rtl\fP : 1;
+	uint8_t \fIhave_ink_bounds\fP : 1;
+	int32_t \fIfont_ascent\fP;
+	int32_t \fIfont_descent\fP;
+	int32_t \fImax_overlap\fP;
+	struct libparsepcf_metrics \fImin_bounds\fP;
+	struct libparsepcf_metrics \fImax_bounds\fP;
+	struct libparsepcf_metrics \fImin_ink_bounds\fP;
+	struct libparsepcf_metrics \fImax_ink_bounds\fP;
+};
+
+int libparsepcf_get_accelerators(const void *\fIdata\fP, size_t \fIsize\fP,
+                                 const struct libparsepcf_table *\fItable\fP,
+                                 struct libparsepcf_accelerators *\fImeta_out\fP);
+.fi
+.PP
+Link with
+.IR -lparsepcf .
+
+.SH DESCRIPTION
+A PCF font files may record overall font
+information, intended for optimisations,
+in the tables with the types
+.B LIBPARSEPCF_ACCELERATORS
+and
+.B LIBPARSEPCF_BDF_ACCELERATORS
+which can be retrieved with the
+.BR libparsepcf_get_tables (3)
+function. If both tables are present,
+.B LIBPARSEPCF_BDF_ACCELERATORS
+shall be preferred, it is more accurate
+and only refers to the encoded characters
+in the font, whereas
+.B LIBPARSEPCF_ACCELERATORS
+includes all glyphs (not that the fallback
+glyph do not necessarily correspond to an
+encoded character).
+.PP
+Once the
+.B LIBPARSEPCF_ACCELERATORS
+or
+.B LIBPARSEPCF_BDF_ACCELERATORS
+table has been identified, it can be passed as
+the third argument
+.RI ( table )
+to the
+.BR libparsepcf_get_accelerators ()
+function along with the font file contents in the
+.I data
+argument and size, in bytes, of the file in the
+.I size
+argument. The
+.BR libparsepcf_get_accelerators ()
+function will store the font information in
+.IR *meta_out .
+.PP
+The following information will be stored in
+.IR *meta_out :
+.TP
+.I no_overlap
+If 1, then for each glyph, the layout metrics,
+.IR mtx ,
+.I mtx.right_side_bearing - mtx.character_width
+will not be greater than
+.IR meta_out->min_bounds.left_side_bearing .
+.TP
+.I constant_width
+If 1, all glyph have the same layout width.
+.TP
+.I constant_metrics
+If 1, all glyphs have the same layout metrics.
+.TP
+.I terminal_font
+If 1, all glyphs have the same layout metrics
+and for each glyph, the layout left-side bearing is 0,
+the layout right-side bearing is the layout width,
+the layout ascent is
+.IR meta_out->font_ascent ,
+and the layout descent is
+.IR meta_out->font_descent .
+.TP
+.I ink_inside
+If 1, no glyph will have ink outside the
+glyph's layout box.
+.TP
+.I ink_metrics
+If 1, at least one glyph have ink metrics
+different from the layout metrics.
+.TP
+.I draw_rtl
+If 1, the font is a right-to-left font,
+if 0, the font is a left-to-right font.
+.TP
+.I have_ink_bounds
+If 0, the function copied
+.I meta_out->min_bounds
+into
+.I meta_out->min_ink_bounds
+and
+.I meta_out->max_bounds
+into
+.IR meta_out->max_ink_bounds .
+.TP
+.I font_ascent
+The number of pixels the font ascend above the baseline.
+.TP
+.I font_descent
+The number of pixels the font descend below the baseline.
+.TP
+.I max_overlap
+The maximum horizontal overlap, in pixels, of two glyph.
+.TP
+.I min_bounds
+The lower bounds, over each glyph, of the layout metrics.
+.TP
+.I max_bounds
+The upper bounds, over each glyph, of the layout metrics.
+.TP
+.I min_ink_bounds
+The lower bounds, over each glyph, of the ink metrics.
+.TP
+.I max_ink_bounds
+The upper bounds, over each glyph, of the ink metrics.
+
+.SH RETURN VALUE
+The
+.BR libparsepcf_get_accelerators ()
+function returns 0 upon successful completion.
+On failure, -1 is returned and
+.I errno
+is set appropriately to indicate the error.
+
+.SH ERRORS
+The
+.BR libparsepcf_get_accelerators ()
+function fails if:
+.TP
+.B EBFONT
+The font file is corrupt or unsupported.
+
+.SH SEE ALSO
+.BR libparsepcf (7),
+.BR libparsepcf_preparse_font (3)

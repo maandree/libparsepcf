@@ -40,6 +40,8 @@ struct libparsepcf_table {
 
 	/**
 	 * The size of the table
+	 * 
+	 * Intended for internal use
 	 */
 	uint32_t size;
 
@@ -48,6 +50,8 @@ struct libparsepcf_table {
 	 * 
 	 * (The file is padded with NUL bytes to align
 	 * each table to a 4 byte boundary)
+	 * 
+	 * Intended for internal use
 	 */
 	uint32_t offset;
 };
@@ -667,8 +671,8 @@ struct libparsepcf_accelerators {
 	uint8_t constant_metrics : 1;
 
 	/**
-	 * `.constant_metrics` and, for all characters, left side bearing = 0,
-	 * right side bearing = character width, ascent = `.font_ascent`, and
+	 * `.constant_metrics` and, for all characters, left-side bearing = 0,
+	 * right-side bearing = character width, ascent = `.font_ascent`, and
 	 * descent = `.font_descent`
 	 */
 	uint8_t terminal_font : 1;
@@ -748,7 +752,7 @@ struct libparsepcf_accelerators {
  * 
  * @throws  EBFONT  The file is not a properly formatted PCF file
  * 
- * `LIBPARSEPCF_BDF_ACCELERATORS` shall be prefered over
+ * `LIBPARSEPCF_BDF_ACCELERATORS` shall be preferred over
  * `LIBPARSEPCF_ACCELERATORS` of both tables are present.
  * `LIBPARSEPCF_BDF_ACCELERATORS` is more accurate and refers
  * only to the encoded characters in the font, whereas
