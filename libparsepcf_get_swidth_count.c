@@ -3,8 +3,11 @@
 
 
 int
-libparsepcf_get_swidth_count(const char *file, size_t size, const struct libparsepcf_table *table, size_t *countp)
+libparsepcf_get_swidth_count(const void *file, size_t size,
+                             const struct libparsepcf_table *table,
+                             size_t *count)
 {
+	const char *text = file;
 	size_t pos;
 	int msb = table->format & LIBPARSEPCF_BYTE;
 
@@ -13,14 +16,14 @@ libparsepcf_get_swidth_count(const char *file, size_t size, const struct libpars
 
 	pos = table->offset;
 
-	if (table->format != libparsepcf_parse_lsb_uint32__(&file[pos]))
+	if (table->format != libparsepcf_parse_lsb_uint32__(&text[pos]))
 		goto ebfont;
 	pos += 4;
 
-	*countp = (size_t)PARSE_UINT32(&file[pos], msb);
+	*count = (size_t)PARSE_UINT32(&text[pos], msb);
 	pos += 4;
 
-	if (*countp > (size - pos) / 4)
+	if (*count > (size - pos) / 4)
 		goto ebfont;
 
 	return 0;

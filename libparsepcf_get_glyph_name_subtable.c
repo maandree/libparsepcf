@@ -3,11 +3,12 @@
 
 
 int
-libparsepcf_get_glyph_name_subtable(const char *file, size_t size,
+libparsepcf_get_glyph_name_subtable(const void *file, size_t size,
                                     const struct libparsepcf_table *table,
                                     const struct libparsepcf_glyph_names *meta,
-                                    const char **out, size_t first, size_t count)
+                                    const char **names, size_t first, size_t count)
 {
+	const char *text = file;
 	size_t pos, i, off;
 	int msb = table->format & LIBPARSEPCF_BYTE;
 
@@ -18,11 +19,11 @@ libparsepcf_get_glyph_name_subtable(const char *file, size_t size,
 
 	pos = table->offset + 8 + first * 4;
 	for (i = 0; i < count; i++, pos += 4) {
-		off = (size_t)PARSE_UINT32(&file[pos], msb);
+		off = (size_t)PARSE_UINT32(&text[pos], msb);
 		if (off > meta->strings_size)
 			goto ebfont;
-		out[i] = &meta->strings[off];
-		if (!memchr(out[i], 0, meta->strings_size - off))
+		names[i] = &meta->strings[off];
+		if (!memchr(names[i], 0, meta->strings_size - off))
 			goto ebfont;
 	}
 

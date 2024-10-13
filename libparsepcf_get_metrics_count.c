@@ -3,8 +3,11 @@
 
 
 int
-libparsepcf_get_metrics_count(const char *file, size_t size, const struct libparsepcf_table *table, size_t *countp)
+libparsepcf_get_metrics_count(const void *file, size_t size,
+                              const struct libparsepcf_table *table,
+                              size_t *count)
 {
+	const char *text = file;
 	size_t pos;
 	int msb = table->format & LIBPARSEPCF_BYTE;
 	int compressed = table->format & LIBPARSEPCF_COMPRESSED_METRICS;
@@ -14,19 +17,19 @@ libparsepcf_get_metrics_count(const char *file, size_t size, const struct libpar
 
 	pos = table->offset;
 
-	if (table->format != libparsepcf_parse_lsb_uint32__(&file[pos]))
+	if (table->format != libparsepcf_parse_lsb_uint32__(&text[pos]))
 		goto ebfont;
 	pos += 4;
 
 	if (compressed) {
-		*countp = (size_t)PARSE_UINT16(&file[pos], msb);
+		*count = (size_t)PARSE_UINT16(&text[pos], msb);
 		pos += 2;
-		if (*countp > (size - pos) / 5)
+		if (*count > (size - pos) / 5)
 			goto ebfont;
 	} else {
-		*countp = (size_t)PARSE_UINT32(&file[pos], msb);
+		*count = (size_t)PARSE_UINT32(&text[pos], msb);
 		pos += 4;
-		if (*countp > (size - pos) / 12)
+		if (*count > (size - pos) / 12)
 			goto ebfont;
 	}
 

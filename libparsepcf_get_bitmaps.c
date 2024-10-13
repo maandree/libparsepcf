@@ -3,10 +3,11 @@
 
 
 int
-libparsepcf_get_bitmaps(const char *file, size_t size,
+libparsepcf_get_bitmaps(const void *file, size_t size,
                         const struct libparsepcf_table *table,
-                        struct libparsepcf_bitmaps *out)
+                        struct libparsepcf_bitmaps *meta)
 {
+	const char *text = file;
 	size_t pos, glyph_pad;
 	int msb = table->format & LIBPARSEPCF_BYTE;
 
@@ -17,31 +18,31 @@ libparsepcf_get_bitmaps(const char *file, size_t size,
 
 	pos = table->offset;
 
-	if (table->format != libparsepcf_parse_lsb_uint32__(&file[pos]))
+	if (table->format != libparsepcf_parse_lsb_uint32__(&text[pos]))
 		goto ebfont;
 	pos += 4;
 
-	out->glyph_count = (size_t)PARSE_UINT32(&file[pos], msb);
+	meta->glyph_count = (size_t)PARSE_UINT32(&text[pos], msb);
 	pos += 4;
 
 	if (16 > table->size - (pos - table->offset) ||
-	    out->glyph_count > (table->size - (pos - table->offset) - 16) / 4)
+	    meta->glyph_count > (table->size - (pos - table->offset) - 16) / 4)
 		goto ebfont;
-	pos += out->glyph_count * 4;
+	pos += meta->glyph_count * 4;
 	glyph_pad = (size_t)(table->format & LIBPARSEPCF_GLYPH_PAD_MASK);
-	out->bitmap_size = (size_t)PARSE_UINT32(&file[pos + 4 * glyph_pad], msb);
+	meta->bitmap_size = (size_t)PARSE_UINT32(&text[pos + 4 * glyph_pad], msb);
 	pos += 16;
 
-	out->bitmap_data = (const void *)&file[pos];
-	if (out->bitmap_size > table->size - (pos - table->offset))
+	meta->bitmap_data = (const void *)&text[pos];
+	if (meta->bitmap_size > table->size - (pos - table->offset))
 		goto ebfont;
 
-	out->bit_packing = (size_t)1 << ((table->format & LIBPARSEPCF_SCAN_UNIT_MASK) >> 4);
-	out->row_padding = (size_t)1 << ((table->format & LIBPARSEPCF_GLYPH_PAD_MASK) >> 0);
-	out->lsbyte = !!(table->format & LIBPARSEPCF_BYTE);
-	out->lsbit = !!(table->format & LIBPARSEPCF_BIT);
+	meta->bit_packing = (size_t)1 << ((table->format & LIBPARSEPCF_SCAN_UNIT_MASK) >> 4);
+	meta->row_padding = (size_t)1 << ((table->format & LIBPARSEPCF_GLYPH_PAD_MASK) >> 0);
+	meta->lsbyte = !!(table->format & LIBPARSEPCF_BYTE);
+	meta->lsbit = !!(table->format & LIBPARSEPCF_BIT);
 
-	if (out->row_padding < out->bit_packing)
+	if (meta->row_padding < meta->bit_packing)
 		goto ebfont;
 
 	return 0;

@@ -180,10 +180,12 @@ print_bitmaps(void)
 		exit(1);
 	}
 	for (bitmap_i = 0; bitmap_i < bitmaps.glyph_count; bitmap_i++) {
+#if 0
 		printf("\t    #%zu: %zu -> %p (maxsize=%zu)\n",
 		       bitmap_i, bitmaptab[bitmap_i],
 		       (const void *)&bitmaps.bitmap_data[bitmaptab[bitmap_i]],
 		       bitmaps.bitmap_size - bitmaptab[bitmap_i]);
+#endif
 	}
 	free(bitmaptab);
 }
@@ -296,8 +298,8 @@ print_font(void)
 		perror("libparsepcf_get_table_count");
 		exit(1);
 	}
-	fprintf(stderr, "size: %zu\n", len);
-	fprintf(stderr, "ntables: %zu\n", table_n);
+	printf("size: %zu\n", len);
+	printf("ntables: %zu\n", table_n);
 
 	tables = calloc(table_n, sizeof(*tables));
 	if (!tables) {
@@ -336,7 +338,7 @@ print_font(void)
 			print_glyph_names();
 			break;
 #endif
-#if 0
+#if 1
 		case LIBPARSEPCF_BITMAPS:
 			print_bitmaps();
 			break;
@@ -518,7 +520,9 @@ print_glyph(size_t glyph)
 				pixel = "[]";
 			}
 
-			printf("\033[%sm%s", ((bitmap[byte] >> bit) & 1) ? "1;37" : "2;37", pixel);
+			printf("\033[%sm%s\033[%sm",
+			       ((bitmap[byte] >> bit) & 1) ? "1;37" : "2;37", pixel,
+			       (int64_t)y + 1 == (int64_t)mtx.character_ascent ? "0;4" : "0");
 		}
 
 		/* If horizontal advance is larger than character width, print extent in black */
@@ -663,8 +667,12 @@ print_line(const char *str)
 	const uint8_t *s = (const void *)str;
 	int32_t xpos = 0, left = 0, right = 0, ascent = 0, descent = 0;
 	char **lines = NULL;
-	uint32_t codepoint = 0, hi, lo;
+	uint32_t codepoint = 0;
+	uint16_t hi, lo, k, m;
 	size_t glyph, n = 0, y, x, width, height;
+
+	k = (uint16_t)(font.encoding.max_byte2 - font.encoding.min_byte2);
+	m = (uint16_t)(font.encoding.min_byte1 * k + font.encoding.min_byte2);
 
 	while (*s) {
 		/* Very sloppy UTF-8 decoding */
@@ -706,9 +714,9 @@ print_line(const char *str)
 			}
 			glyph = codepoint - (uint32_t)font.encoding.min_byte2;
 		} else {
-			hi = (codepoint >> 8) & UINT32_C(0xFF);
-			lo = (codepoint >> 0) & UINT32_C(0xFF);
-			if (codepoint > UINT32_C(0xFF) ||
+			hi = (uint16_t)((codepoint >> 8) & 0xFFU);
+			lo = (uint16_t)((codepoint >> 0) & 0xFFU);
+			if (codepoint > UINT16_C(0xFF) ||
 			    hi < (uint32_t)font.encoding.min_byte1 ||
 			    hi > (uint32_t)font.encoding.max_byte1 ||
 			    lo < (uint32_t)font.encoding.min_byte2 ||
@@ -716,9 +724,7 @@ print_line(const char *str)
 				glyph = (size_t)font.encoding.default_char;
 				goto have_glyph;
 			}
-			hi -= (size_t)font.encoding.min_byte1;
-			lo -= (size_t)font.encoding.min_byte2;
-			glyph = hi * (size_t)(font.encoding.max_byte2 - font.encoding.min_byte2 + 1) + lo;
+			glyph = (size_t)(uint16_t)(hi * k + lo - m);
 		}
 		/* For the purpose of the demo we are assuming ASCII/UCS-2 */
 		if (libparsepcf_get_glyph_indices(file, len, font.enc_table, &font.encoding, &glyph, glyph, 1)) {

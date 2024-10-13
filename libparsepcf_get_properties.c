@@ -3,10 +3,11 @@
 
 
 int
-libparsepcf_get_properties(const char *file, size_t size,
+libparsepcf_get_properties(const void *file, size_t size,
                            const struct libparsepcf_table *table,
-                           struct libparsepcf_properties *out)
+                           struct libparsepcf_properties *meta)
 {
+	const char *text = file;
 	size_t pos;
 	int msb = table->format & LIBPARSEPCF_BYTE;
 
@@ -17,25 +18,25 @@ libparsepcf_get_properties(const char *file, size_t size,
 
 	pos = table->offset;
 
-	if (table->format != libparsepcf_parse_lsb_uint32__(&file[pos]))
+	if (table->format != libparsepcf_parse_lsb_uint32__(&text[pos]))
 		goto ebfont;
 	pos += 4;
 
-	out->property_count = (size_t)PARSE_UINT32(&file[pos], msb);
+	meta->property_count = (size_t)PARSE_UINT32(&text[pos], msb);
 	pos += 4;
 
 	if (4 > table->size - (pos - table->offset) || 
-	    out->property_count > (table->size - (pos - table->offset) - 4) / 9)
+	    meta->property_count > (table->size - (pos - table->offset) - 4) / 9)
 		goto ebfont;
-	pos += out->property_count * 9;
-	pos += (4 - (out->property_count & 3)) & 3;
+	pos += meta->property_count * 9;
+	pos += (4 - (meta->property_count & 3)) & 3;
 	if (pos - table->offset > table->size - 4)
 		goto ebfont;
-	out->strings_size = (size_t)PARSE_UINT32(&file[pos], msb);
+	meta->strings_size = (size_t)PARSE_UINT32(&text[pos], msb);
 	pos += 4;
 
-	out->strings = &file[pos];
-	if (out->strings_size > table->size - (pos - table->offset))
+	meta->strings = &text[pos];
+	if (meta->strings_size > table->size - (pos - table->offset))
 		goto ebfont;
 
 	return 0;

@@ -3,11 +3,12 @@
 
 
 int
-libparsepcf_get_bitmap_offsets(const char *file, size_t size,
+libparsepcf_get_bitmap_offsets(const void *file, size_t size,
                                const struct libparsepcf_table *table,
                                const struct libparsepcf_bitmaps *meta,
-                               size_t *out, size_t first, size_t count)
+                               size_t *offs, size_t first, size_t count)
 {
+	const char *text = file;
 	int msb = table->format & LIBPARSEPCF_BYTE;
 	size_t pos = table->offset + 8 + first * 4;
 	size_t i;
@@ -15,8 +16,8 @@ libparsepcf_get_bitmap_offsets(const char *file, size_t size,
 	(void) size;
 
 	for (i = 0; i < count; i++, pos += 4) {
-		out[i] = (size_t)PARSE_UINT32(&file[pos + 0], msb);
-		if (out[i] > meta->bitmap_size)
+		offs[i] = (size_t)PARSE_UINT32(&text[pos + 0], msb);
+		if (offs[i] > meta->bitmap_size)
 			goto ebfont;
 	}
 

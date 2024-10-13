@@ -3,10 +3,12 @@
 
 
 int
-libparsepcf_preparse_font(const char *file, size_t size, struct libparsepcf_font *font)
+libparsepcf_preparse_font(const void *file, size_t size, struct libparsepcf_font *font)
 {
 	size_t min = SIZE_MAX, max = 0, table_i, table_n;
 	struct libparsepcf_table *tables = NULL;
+
+	*font = (struct libparsepcf_font){0};
 
 	if (libparsepcf_get_table_count(file, size, &table_n))
 		goto fail;

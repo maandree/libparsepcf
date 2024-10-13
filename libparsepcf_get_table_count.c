@@ -3,14 +3,15 @@
 
 
 int
-libparsepcf_get_table_count(const char *file, size_t size, size_t *countp)
+libparsepcf_get_table_count(const void *file, size_t size, size_t *countp)
 {
+	const char *text = file;
 	uint32_t count;
 
-	if (size < 8 || file[0] != 1 || file[1] != 'f' || file[2] != 'c' || file[3] != 'p')
+	if (size < 8 || text[0] != 1 || text[1] != 'f' || text[2] != 'c' || text[3] != 'p')
 		goto ebfont;
 
-	count = libparsepcf_parse_lsb_uint32__(&file[4]);
+	count = libparsepcf_parse_lsb_uint32__(&text[4]);
 	if (count > (size - 8) / 16)
 		goto ebfont;
 

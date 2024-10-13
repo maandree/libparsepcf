@@ -3,12 +3,13 @@
 
 
 int
-libparsepcf_get_property_subtable(const char *file, size_t size,
+libparsepcf_get_property_subtable(const void *file, size_t size,
                                   const struct libparsepcf_table *table,
                                   const struct libparsepcf_properties *meta,
                                   struct libparsepcf_property_subtable *props,
-                                    size_t first, size_t count)
+                                  size_t first, size_t count)
 {
+	const char *text = file;
 	int msb = table->format & LIBPARSEPCF_BYTE;
 	size_t pos = table->offset + 8 + first * 9;
 	size_t i, off, maxlen;
@@ -16,7 +17,7 @@ libparsepcf_get_property_subtable(const char *file, size_t size,
 	(void) size;
 
 	for (i = 0; i < count; i++, pos += 9) {
-		off = (size_t)PARSE_UINT32(&file[pos + 0], msb);
+		off = (size_t)PARSE_UINT32(&text[pos + 0], msb);
 		if (off > meta->strings_size)
 			goto ebfont;
 		maxlen = meta->strings_size - off;
@@ -24,10 +25,10 @@ libparsepcf_get_property_subtable(const char *file, size_t size,
 		if (!memchr(props[i].name, 0, maxlen))
 			goto ebfont;
 
-		props[i].is_string_property = !!file[pos + 4];
+		props[i].is_string_property = !!text[pos + 4];
 
 		if (props[i].is_string_property) {
-			off = (size_t)PARSE_UINT32(&file[pos + 5], msb);
+			off = (size_t)PARSE_UINT32(&text[pos + 5], msb);
 			if (off > meta->strings_size)
 				goto ebfont;
 			maxlen = meta->strings_size - off;
@@ -35,7 +36,7 @@ libparsepcf_get_property_subtable(const char *file, size_t size,
 			if (!memchr(props[i].value.string_value, 0, maxlen))
 				goto ebfont;
 		} else {
-			props[i].value.signed_value = PARSE_INT32(&file[pos + 5], msb);
+			props[i].value.signed_value = PARSE_INT32(&text[pos + 5], msb);
 		}
 	}
 

@@ -3,10 +3,11 @@
 
 
 int
-libparsepcf_get_encoding(const char *file, size_t size,
+libparsepcf_get_encoding(const void *file, size_t size,
                          const struct libparsepcf_table *table,
-                         struct libparsepcf_encoding *out)
+                         struct libparsepcf_encoding *meta)
 {
+	const char *text = file;
 	int msb = table->format & LIBPARSEPCF_BYTE;
 	size_t pos;
 
@@ -17,23 +18,24 @@ libparsepcf_get_encoding(const char *file, size_t size,
 
 	pos = table->offset;
 
-	if (table->format != libparsepcf_parse_lsb_uint32__(&file[pos]))
+	if (table->format != libparsepcf_parse_lsb_uint32__(&text[pos]))
 		goto ebfont;
 	pos += 4;
 
-	out->min_byte2 = PARSE_UINT16(&file[pos + 0], msb);
-	out->max_byte2 = PARSE_UINT16(&file[pos + 2], msb);
-	out->min_byte1 = PARSE_UINT16(&file[pos + 4], msb);
-	out->max_byte1 = PARSE_UINT16(&file[pos + 6], msb);
-	out->default_char = PARSE_UINT16(&file[pos + 8], msb);
+	meta->min_byte2 = PARSE_UINT16(&text[pos + 0], msb);
+	meta->max_byte2 = PARSE_UINT16(&text[pos + 2], msb);
+	meta->min_byte1 = PARSE_UINT16(&text[pos + 4], msb);
+	meta->max_byte1 = PARSE_UINT16(&text[pos + 6], msb);
+	meta->default_char = PARSE_UINT16(&text[pos + 8], msb);
 	pos += 10;
 
-	if (out->min_byte2 > out->max_byte2 || out->max_byte2 > 255 ||
-	    out->min_byte1 > out->max_byte1 || out->max_byte1 > 255)
+	if (meta->min_byte2 > meta->max_byte2 || meta->max_byte2 > 255 ||
+	    meta->min_byte1 > meta->max_byte1 || meta->max_byte1 > 255)
 		goto ebfont;
 
-	out->glyph_count = (size_t)(out->max_byte2 - out->min_byte2 + 1) * (size_t)(out->max_byte1 - out->min_byte1 + 1);
-	if (out->glyph_count > table->size - (pos - table->offset) / 2)
+	meta->glyph_count  = (size_t)(meta->max_byte2 - meta->min_byte2 + 1);
+	meta->glyph_count *= (size_t)(meta->max_byte1 - meta->min_byte1 + 1);
+	if (meta->glyph_count > table->size - (pos - table->offset) / 2)
 		goto ebfont;
 
 	return 0;
