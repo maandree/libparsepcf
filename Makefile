@@ -72,8 +72,8 @@ MAN3 =\
 	libparsepcf_get_glyph_names.3\
 	libparsepcf_get_glyph_name_subtable.3\
 	struct_libparsepcf_bitmaps.3\
-	int libparsepcf_get_bitmaps.3\
-	int libparsepcf_get_bitmap_offsets.3\
+	libparsepcf_get_bitmaps.3\
+	libparsepcf_get_bitmap_offsets.3\
 	struct_libparsepcf_encoding.3\
 	LIBPARSEPCF_NOT_ENCODED.3\
 	libparsepcf_get_encoding.3\
@@ -126,7 +126,9 @@ install: libparsepcf.a libparsepcf.$(LIBEXT)
 	ln -sf -- libparsepcf.$(LIBMINOREXT) "$(DESTDIR)$(PREFIX)/lib/libparsepcf.$(LIBMAJOREXT)"
 	ln -sf -- libparsepcf.$(LIBMAJOREXT) "$(DESTDIR)$(PREFIX)/lib/libparsepcf.$(LIBEXT)"
 	cp -- libparsepcf.h "$(DESTDIR)$(PREFIX)/include/"
+	cp -P -- $(MAN0) "$(DESTDIR)$(MANPREFIX)/man0/"
 	cp -P -- $(MAN3) "$(DESTDIR)$(MANPREFIX)/man3/"
+	cp -P -- $(MAN7) "$(DESTDIR)$(MANPREFIX)/man7/"
 
 uninstall:
 	-rm -f -- "$(DESTDIR)$(PREFIX)/lib/libparsepcf.a"
