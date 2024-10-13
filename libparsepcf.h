@@ -9,7 +9,6 @@
 /* Based on documentation from FontForge: https://fontforge.org/docs/techref/pcf-format.html */
 
 
-
 /**
  * Table metadata
  */
@@ -399,28 +398,113 @@ struct libparsepcf_bitmaps {
 
 	/**
 	 * The size of `.bitmap_data`
+	 * 
+	 * Used internally to detect corruption
 	 */
 	size_t bitmap_size;
 
+	/**
+	 * For each row in a glyph, cells' ink status are
+	 * encoded in bits that are packed into groups of
+	 * units, and the bits are ordered according to
+	 * `.msbit_first` within each group. This field
+	 * specifies the number of bytes in each group.
+	 * 
+	 * This will always be a power of two and
+	 * no greater than `.row_padding`
+	 */
 	size_t bit_packing;
 
 	/**
-	 * The number of bytes each row is
-	 * padded to align to
+	 * The number of bytes each row is padded to align to
 	 * 
 	 * This will always be a power of two
 	 */
 	size_t row_padding;
 
-	int lsbyte;
-	int lsbit;
+	/**
+	 * This field specify the order of the bytes for
+	 * each group of bits as described in the documentation
+	 * of `.bit_packing`. The value will be either 0 or 1
+	 * 
+	 * If 0, the bytes in each glyph cell group is ordered
+	 * such that the least significant bit octet is stored
+	 * in the first byte
+	 * 
+	 * If 1, the bytes in each glyph cell group is ordered
+	 * such that the least significant bit octet is stored
+	 * in the first byte
+	 */
+	int msbyte_first; /* called "lsbyte" in 1.0 */
+
+	/**
+	 * Will either be 0 or 1
+	 * 
+	 * If 0, glyph cells (left to right) are encoded from
+	 * the least significant bit to the most significant
+	 * bit within each byte
+	 * 
+	 * If 1, glyph cells (left to right) are encoded from
+	 * the most significant bit to the least significant
+	 * bit within each byte
+	 */
+	int msbit_first; /* called "lsbit" in 1.0 */
+
+	/**
+	 * Bitmap data, `libparsepcf_get_bitmap_offsets` should be
+	 * be used to find where in this buffer the bitmap for a
+	 * particular glyph begins, and the `LIBPARSEPCF_INK_METRICS`
+	 * table shall be used (along with information in this
+	 * structure) to decode the bitmap data; if the table
+	 * `LIBPARSEPCF_INK_METRICS` is missing the
+	 * `LIBPARSEPCF_METRICS` (layout metrics) should be used
+	 * instead
+	 * 
+	 * Bitmaps are in row-major order, top to bottom,
+	 * and in column-minor order, left to right
+	 * 
+	 * Set bits represent ink-on, cleared bits represent ink-off
+	 */
 	const uint8_t *bitmap_data;
 };
 
+/**
+ * Get the bitmaps metadata for the glyphs in the file
+ * 
+ * @param   file   The file content
+ * @param   size   The file size
+ * @param   table  The table in the file with the `.type` `LIBPARSEPCF_BITMAPS`,
+ *                 extracted using the `libparsepcf_get_tables` function
+ * @param   meta   Output parameter for the glyph bitmap metadata
+ * @return         0 on success, -1 on failure
+ * 
+ * @throws  EBFONT  The file is not a properly formatted PCF file
+ */
 int libparsepcf_get_bitmaps(const void *, size_t,
                             const struct libparsepcf_table *,
                             struct libparsepcf_bitmaps *);
 
+/**
+ * Get the offsets to the bitmaps for glyphs in the file
+ * 
+ * The first four arguments shall be the same as
+ * passed into `libparsepcf_get_bitmaps`
+ * 
+ * @param   file   The file content
+ * @param   size   The file size
+ * @param   table  The table in the file with the `.type` `LIBPARSEPCF_BITMAPS`,
+ *                 extracted using the `libparsepcf_get_tables` function
+ * @param   meta   Glyph bitmap metadata
+ * @param   offs   Output parameter for the bitmap offsets
+ * @param   first  The index of the first glyph whose bitmap offset to store
+ *                 in `offs`, the first glyph in the file has the index 0
+ * @param   count  The number of glyphs whose bitmap offsets to store in `offs`;
+ *                 may not exceed the number of properties (`.glyph_count`)
+ *                 as retrieved by `libparsepcf_get_bitmaps` minus `first`
+ * @return         0 on success, -1 on failure
+ * 
+ * @throws  EBFONT  The file is not a properly formatted PCF file
+ */
 int libparsepcf_get_bitmap_offsets(const void *, size_t,
                                    const struct libparsepcf_table *,
                                    const struct libparsepcf_bitmaps *,
@@ -501,25 +585,16 @@ struct libparsepcf_encoding {
 	 * field does not necessarily correspond to a
 	 * character and thus may not be available in the
 	 * encoding table
-	 * 
-	 * This name of this field is choosen for consistence
-	 * with the documentation the implementation is based
-	 * on, and is confusing, it ought to be called
-	 * "default_glyph"
 	 */
-	uint16_t default_char;
+	uint16_t default_glyph; /* called "default_char" in 1.0 */
 
 	/**
 	 * The number of entries available in the index table,
 	 * this is not number of glyphs in the file, but rather
 	 * the product of `.max_byte2 - .min_byte2 + 1` and
-	 * `.max_byte1 - .min_byte1 + 1`.
-	 * 
-	 * This name of this field is choosen for consistence
-	 * with the documentation the implementation is based
-	 * on, and is confusing, it ought to be called "char_count"
+	 * `.max_byte1 - .min_byte1 + 1`
 	 */
-	size_t glyph_count;
+	size_t char_count; /* called "glyph_count" in 1.0 */
 };
 
 /**

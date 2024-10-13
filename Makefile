@@ -10,7 +10,7 @@ OS = linux
 include mk/$(OS).mk
 
 
-LIB_MAJOR = 1
+LIB_MAJOR = 2
 LIB_MINOR = 0
 LIB_VERSION = $(LIB_MAJOR).$(LIB_MINOR)
 LIB_NAME = parsepcf
@@ -52,6 +52,7 @@ SRC = $(OBJ:.o=.c)
 all: libparsepcf.a libparsepcf.$(LIBEXT) demo
 $(OBJ): $(HDR)
 $(LOBJ): $(HDR)
+demo.o: $(HDR)
 
 demo: demo.o libparsepcf.a
 	$(CC) -o $@ demo.o libparsepcf.a $(LDFLAGS)

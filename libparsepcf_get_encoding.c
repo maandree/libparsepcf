@@ -26,16 +26,16 @@ libparsepcf_get_encoding(const void *file, size_t size,
 	meta->max_byte2 = PARSE_UINT16(&text[pos + 2], msb);
 	meta->min_byte1 = PARSE_UINT16(&text[pos + 4], msb);
 	meta->max_byte1 = PARSE_UINT16(&text[pos + 6], msb);
-	meta->default_char = PARSE_UINT16(&text[pos + 8], msb);
+	meta->default_glyph = PARSE_UINT16(&text[pos + 8], msb);
 	pos += 10;
 
 	if (meta->min_byte2 > meta->max_byte2 || meta->max_byte2 > 255 ||
 	    meta->min_byte1 > meta->max_byte1 || meta->max_byte1 > 255)
 		goto ebfont;
 
-	meta->glyph_count  = (size_t)(meta->max_byte2 - meta->min_byte2 + 1);
-	meta->glyph_count *= (size_t)(meta->max_byte1 - meta->min_byte1 + 1);
-	if (meta->glyph_count > table->size - (pos - table->offset) / 2)
+	meta->char_count  = (size_t)(meta->max_byte2 - meta->min_byte2 + 1);
+	meta->char_count *= (size_t)(meta->max_byte1 - meta->min_byte1 + 1);
+	if (meta->char_count > table->size - (pos - table->offset) / 2)
 		goto ebfont;
 
 	return 0;

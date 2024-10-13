@@ -165,8 +165,8 @@ print_bitmaps(void)
 	printf("\tsize: %zu\n", bitmaps.bitmap_size);
 	printf("\tpacking: %zu\n", bitmaps.bit_packing);
 	printf("\tpadding: %zu\n", bitmaps.row_padding);
-	printf("\tlsbyte: %i\n", bitmaps.lsbyte);
-	printf("\tlsbit: %i\n", bitmaps.lsbit);
+	printf("\tmsbyte_first: %i\n", bitmaps.msbyte_first);
+	printf("\tmsbit_first: %i\n", bitmaps.msbit_first);
 	if (!bitmaps.glyph_count)
 		return;
 	bitmaptab = calloc(bitmaps.glyph_count, sizeof(*bitmaptab));
@@ -205,17 +205,17 @@ print_bdf_encodings(void)
 	printf("    BDF ENCODINGS:\n");
 	printf("\trange2: [%u, %u]\n", encoding.min_byte2, encoding.max_byte2);
 	printf("\trange1: [%u, %u]\n", encoding.min_byte1, encoding.max_byte1);
-	printf("\tdefault: %u\n", encoding.default_char);
-	printf("\tnglyph: %zu\n", encoding.glyph_count);
-	if (!encoding.glyph_count)
+	printf("\tdefault: %u\n", encoding.default_glyph);
+	printf("\tnchar: %zu\n", encoding.char_count);
+	if (!encoding.char_count)
 		return;
-	indices = calloc(encoding.glyph_count, sizeof(*indices));
+	indices = calloc(encoding.char_count, sizeof(*indices));
 	if (libparsepcf_get_glyph_indices(file, len, &tables[table_i], &encoding,
-	                                  indices, 0, encoding.glyph_count)) {
+	                                  indices, 0, encoding.char_count)) {
 		perror("libparsepcf_get_glyph_indices");
 		exit(1);
 	}
-	for (index_i = 0; index_i < encoding.glyph_count; index_i++) {
+	for (index_i = 0; index_i < encoding.char_count; index_i++) {
 		if (indices[index_i] == LIBPARSEPCF_NOT_ENCODED)
 			printf("\t#%#zx: not encoded\n", index_i);
 		else
@@ -498,10 +498,10 @@ print_glyph(size_t glyph)
 
 		/* Draw glyph */
 		for (x = 0; x < width; x++) {
-			bit = font.bitmaps.lsbit ? 7 - x % 8 : x % 8;
+			bit = font.bitmaps.msbit_first ? 7 - x % 8 : x % 8;
 			byte = x / 8;
-			if (!font.bitmaps.lsbyte)
-				byte = ((byte & ~packing) | (packing - (byte & packing)));
+			if (font.bitmaps.msbyte_first != font.bitmaps.msbit_first)
+				byte ^= packing;
 
 			/* Use <> to mark dots outside of the glyph box */
 			if (mtx.left_side_bearing < 0 &&
@@ -521,7 +521,7 @@ print_glyph(size_t glyph)
 			}
 
 			printf("\033[%sm%s\033[%sm",
-			       ((bitmap[byte] >> bit) & 1) ? "1;37" : "2;37", pixel,
+			       (bitmap[byte] & (1 << bit)) ? "1;37" : "2;37", pixel,
 			       (int64_t)y + 1 == (int64_t)mtx.character_ascent ? "0;4" : "0");
 		}
 
@@ -650,11 +650,11 @@ draw_glyph(size_t glyph, int32_t *xp, char ***linesp, int32_t *leftp, int32_t *r
 	ypos = (size_t)(*ascentp - mtx.character_ascent);
 	for (y = 0; y < height; y++, bitmap += row_size) {
 		for (x = 0; x < width; x++) {
-			bit = font.bitmaps.lsbit ? 7 - x % 8 : x % 8;
+			bit = font.bitmaps.msbit_first ? 7 - x % 8 : x % 8;
 			byte = x / 8;
-			if (!font.bitmaps.lsbyte)
-				byte = ((byte & ~packing) | (packing - (byte & packing)));
-			if ((bitmap[byte] >> bit) & 1)
+			if (font.bitmaps.msbyte_first != font.bitmaps.msbit_first)
+				byte ^= packing;
+			if (bitmap[byte] & (1 << bit))
 				(*linesp)[y + ypos][x + xpos] |= 1;
 		}
 	}
@@ -679,7 +679,7 @@ print_line(const char *str)
 		if (n) {
 			if ((*s & 0xC0) != 0x80) {
 				n = 0;
-				glyph = (size_t)font.encoding.default_char;
+				glyph = (size_t)font.encoding.default_glyph;
 				goto have_glyph;
 			} else {
 				n -= 1;
@@ -687,7 +687,7 @@ print_line(const char *str)
 				codepoint |= *s++ & 0x3F;
 			}
 		} else if ((*s & 0xC0) == 0x80) {
-			glyph = (size_t)font.encoding.default_char;
+			glyph = (size_t)font.encoding.default_glyph;
 			s++;
 			goto have_glyph;
 		} else if (*s & 0x80) {
@@ -709,7 +709,7 @@ print_line(const char *str)
 			if (codepoint > UINT32_C(0xFFFF) ||
 			    codepoint < (uint32_t)font.encoding.min_byte2 ||
 			    codepoint > (uint32_t)font.encoding.max_byte2) {
-				glyph = (size_t)font.encoding.default_char;
+				glyph = (size_t)font.encoding.default_glyph;
 				goto have_glyph;
 			}
 			glyph = codepoint - (uint32_t)font.encoding.min_byte2;
@@ -721,7 +721,7 @@ print_line(const char *str)
 			    hi > (uint32_t)font.encoding.max_byte1 ||
 			    lo < (uint32_t)font.encoding.min_byte2 ||
 			    lo > (uint32_t)font.encoding.max_byte2) {
-				glyph = (size_t)font.encoding.default_char;
+				glyph = (size_t)font.encoding.default_glyph;
 				goto have_glyph;
 			}
 			glyph = (size_t)(uint16_t)(hi * k + lo - m);
@@ -734,7 +734,7 @@ print_line(const char *str)
 
 	have_glyph:
 		if (glyph == LIBPARSEPCF_NOT_ENCODED)
-			glyph = (size_t)font.encoding.default_char;
+			glyph = (size_t)font.encoding.default_glyph;
 
 		draw_glyph(glyph, &xpos, &lines, &left, &right, &ascent, &descent);
 	}

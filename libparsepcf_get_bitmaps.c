@@ -39,8 +39,8 @@ libparsepcf_get_bitmaps(const void *file, size_t size,
 
 	meta->bit_packing = (size_t)1 << ((table->format & LIBPARSEPCF_SCAN_UNIT_MASK) >> 4);
 	meta->row_padding = (size_t)1 << ((table->format & LIBPARSEPCF_GLYPH_PAD_MASK) >> 0);
-	meta->lsbyte = !!(table->format & LIBPARSEPCF_BYTE);
-	meta->lsbit = !!(table->format & LIBPARSEPCF_BIT);
+	meta->msbyte_first = !!(table->format & LIBPARSEPCF_BYTE);
+	meta->msbit_first = !!(table->format & LIBPARSEPCF_BIT);
 
 	if (meta->row_padding < meta->bit_packing)
 		goto ebfont;
